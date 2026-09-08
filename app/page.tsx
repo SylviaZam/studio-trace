@@ -1,10 +1,24 @@
 'use client';
 
+/* oxlint-disable next/no-img-element -- Vinext's next/image shim causes a duplicate-React runtime error; these are local, dimensioned design assets. */
+
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Clipboard, Download, FileText, RotateCcw, ShieldCheck, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Clipboard, Download, RotateCcw, Sparkles } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type Trace = { project: string; discipline: string; intent: string; aiUse: string; accepted: string; rejected: string; verified: string; humanDecisions: string };
+type DialogKind = 'sample' | 'clear' | null;
 
+const storageKey = 'studio-trace-draft-v1';
 const emptyTrace: Trace = { project: '', discipline: 'Interaction design', intent: '', aiUse: '', accepted: '', rejected: '', verified: '', humanDecisions: '' };
 
 const sampleTrace: Trace = {
@@ -19,28 +33,64 @@ const sampleTrace: Trace = {
 };
 
 const steps = [
-  { label: 'Frame the work', fields: ['project', 'discipline', 'intent'] },
-  { label: 'Name the AI role', fields: ['aiUse'] },
-  { label: 'Show your judgment', fields: ['accepted', 'rejected'] },
-  { label: 'Record verification', fields: ['verified'] },
-  { label: 'Claim your authorship', fields: ['humanDecisions'] },
+  { label: 'Frame the work', shortLabel: 'the AI role', fields: ['project', 'discipline', 'intent'] },
+  { label: 'Name the AI role', shortLabel: 'your judgment', fields: ['aiUse'] },
+  { label: 'Show your judgment', shortLabel: 'verification', fields: ['accepted', 'rejected'] },
+  { label: 'Record verification', shortLabel: 'authorship', fields: ['verified'] },
+  { label: 'Claim your authorship', shortLabel: 'review', fields: ['humanDecisions'] },
 ] as const;
 
-const fieldClass = 'w-full rounded-[3px] border border-[var(--line-strong)] bg-white px-4 py-3 text-[15px] leading-6 text-[var(--ink)] outline-none transition focus:border-[var(--blue)] focus:ring-2 focus:ring-[var(--blue-soft)] placeholder:text-[var(--muted)]';
+const previewSections = [
+  { number: '01', title: 'Creative intent', prompt: 'What problem or question guided the work?', value: (trace: Trace) => trace.intent },
+  { number: '02', title: 'Role of AI', prompt: 'What did the tool generate, critique, or help explore?', value: (trace: Trace) => trace.aiUse },
+  { number: '03', title: 'Human judgment', prompt: 'What did you keep—and what did you reject?', value: (trace: Trace) => trace.accepted || trace.rejected ? `Accepted or adapted: ${trace.accepted || '—'}\n\nRejected: ${trace.rejected || '—'}` : '' },
+  { number: '04', title: 'Verification', prompt: 'How did you check the result?', value: (trace: Trace) => trace.verified },
+  { number: '05', title: 'Authorship', prompt: 'Which decisions remained yours?', value: (trace: Trace) => trace.humanDecisions },
+];
+
+const fieldClass = 'trace-field w-full border border-[var(--gray)] bg-white px-5 text-base leading-6 text-[var(--ink)] outline-none transition placeholder:text-[var(--gray-dark)] hover:border-[var(--ink)] focus:border-[var(--blue)] focus:ring-4 focus:ring-[var(--blue-wash)] aria-invalid:border-[var(--error)] aria-invalid:ring-4 aria-invalid:ring-[var(--error-wash)]';
 
 export default function Home() {
   const [trace, setTrace] = useState<Trace>(emptyTrace);
   const [activeStep, setActiveStep] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [attemptedStep, setAttemptedStep] = useState<number | null>(null);
+  const [mobileStepsOpen, setMobileStepsOpen] = useState(false);
+  const [dialogKind, setDialogKind] = useState<DialogKind>(null);
+  const [toast, setToast] = useState('');
+  const [draftReady, setDraftReady] = useState(false);
+
   const completed = useMemo(() => steps.map((step) => step.fields.every((field) => trace[field as keyof Trace].trim().length > 0)), [trace]);
   const progress = completed.filter(Boolean).length;
+  const hasWriting = Object.entries(trace).some(([key, value]) => key !== 'discipline' && value.trim().length > 0);
   const set = (field: keyof Trace, value: string) => setTrace((current) => ({ ...current, [field]: value }));
+
+  const announce = (message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(''), 2200);
+  };
+
+  useEffect(() => {
+    window.queueMicrotask(() => {
+      try {
+        const saved = window.localStorage.getItem(storageKey);
+        if (saved) setTrace({ ...emptyTrace, ...(JSON.parse(saved) as Partial<Trace>) });
+      } catch {
+        window.localStorage.removeItem(storageKey);
+      } finally {
+        setDraftReady(true);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    window.localStorage.setItem(storageKey, JSON.stringify(trace));
+  }, [draftReady, trace]);
 
   useEffect(() => {
     const context = (document as Document & {
-      modelContext?: {
-        registerTool: (tool: object, options?: { signal?: AbortSignal }) => void | Promise<void>;
-      };
+      modelContext?: { registerTool: (tool: object, options?: { signal?: AbortSignal }) => void | Promise<void> };
     }).modelContext;
     if (!context?.registerTool) return;
 
@@ -54,14 +104,8 @@ export default function Home() {
       inputSchema: {
         type: 'object',
         properties: {
-          project: { type: 'string' },
-          discipline: { type: 'string' },
-          intent: { type: 'string' },
-          aiUse: { type: 'string' },
-          accepted: { type: 'string' },
-          rejected: { type: 'string' },
-          verified: { type: 'string' },
-          humanDecisions: { type: 'string' },
+          project: { type: 'string' }, discipline: { type: 'string' }, intent: { type: 'string' }, aiUse: { type: 'string' },
+          accepted: { type: 'string' }, rejected: { type: 'string' }, verified: { type: 'string' }, humanDecisions: { type: 'string' },
         },
         required: [...required],
         additionalProperties: false,
@@ -70,9 +114,7 @@ export default function Home() {
       execute(input: unknown) {
         if (!input || typeof input !== 'object') throw new Error('Passport details must be an object.');
         const candidate = input as Record<string, unknown>;
-        if (required.some((field) => typeof candidate[field] !== 'string' || !(candidate[field] as string).trim())) {
-          throw new Error('Every passport section must contain the creator’s own account.');
-        }
+        if (required.some((field) => typeof candidate[field] !== 'string' || !(candidate[field] as string).trim())) throw new Error('Every passport section must contain the creator’s own account.');
         const next: Trace = {
           project: candidate.project as string,
           discipline: typeof candidate.discipline === 'string' && candidate.discipline.trim() ? candidate.discipline : 'Other',
@@ -85,6 +127,7 @@ export default function Home() {
         };
         setTrace(next);
         setActiveStep(0);
+        setReviewMode(false);
         return { status: 'populated', project: next.project, sectionsComplete: 5 };
       },
     }, { signal: lifecycle.signal })).catch(() => undefined);
@@ -98,12 +141,17 @@ export default function Home() {
   }, [trace]);
 
   const copyDisclosure = async () => {
-    await navigator.clipboard.writeText(disclosure);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    if (progress === 0) return;
+    try {
+      await navigator.clipboard.writeText(disclosure);
+      announce('Passport copied');
+    } catch {
+      announce('Copy failed. Try downloading instead.');
+    }
   };
 
   const downloadDisclosure = () => {
+    if (progress === 0) return;
     const markdown = `# ${trace.project || 'Creative Process Passport'}\n\n**Discipline:** ${trace.discipline}\n\n${disclosure.split('\n\n').slice(1).map((section) => { const [heading, ...body] = section.split('\n'); return `## ${heading}\n\n${body.join('\n')}`; }).join('\n\n')}\n`;
     const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -112,93 +160,220 @@ export default function Home() {
     anchor.download = 'creative-process-passport.md';
     anchor.click();
     URL.revokeObjectURL(url);
+    announce('Passport downloaded');
   };
 
+  const goToStep = (index: number) => {
+    setActiveStep(index);
+    setReviewMode(false);
+    setAttemptedStep(null);
+    setMobileStepsOpen(false);
+  };
+
+  const continueFlow = () => {
+    if (!completed[activeStep]) {
+      setAttemptedStep(activeStep);
+      window.requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+      return;
+    }
+    setAttemptedStep(null);
+    if (activeStep < steps.length - 1) setActiveStep((step) => step + 1);
+    else setReviewMode(true);
+  };
+
+  const requestSample = () => {
+    if (hasWriting) setDialogKind('sample');
+    else loadSample();
+  };
+
+  const loadSample = () => {
+    setTrace(sampleTrace);
+    setActiveStep(0);
+    setReviewMode(false);
+    setAttemptedStep(null);
+    setDialogKind(null);
+    announce('Completed example loaded');
+  };
+
+  const clearDraft = () => {
+    window.localStorage.removeItem(storageKey);
+    setTrace(emptyTrace);
+    setActiveStep(0);
+    setReviewMode(false);
+    setAttemptedStep(null);
+    setDialogKind(null);
+    announce('Saved draft cleared');
+  };
+
+  const fieldError = (field: keyof Trace) => attemptedStep === activeStep && !trace[field].trim();
+
   return (
-    <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)]">
-      <header className="border-b border-[var(--line)] bg-white">
-        <div className="mx-auto flex min-h-16 max-w-[1500px] items-center justify-between gap-5 px-5 py-3 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="grid size-9 place-items-center bg-[var(--ink)] text-white"><FileText size={18} strokeWidth={1.8} /></div>
-            <div><p className="text-[17px] font-bold tracking-[-0.03em]">StudioTrace</p><p className="text-xs text-[var(--muted)]">Creative process, made visible</p></div>
-          </div>
-          <div className="hidden items-center gap-2 text-sm text-[var(--muted)] sm:flex"><ShieldCheck size={16} /><span>Your work stays in this browser.</span></div>
+    <main className="min-h-screen bg-white text-[var(--ink)]">
+      <header className="mx-auto flex min-h-[104px] w-full max-w-[1728px] items-center justify-between gap-5 px-5 py-4 sm:px-8 xl:min-h-[120px] xl:px-[50px]">
+        <div className="flex items-center gap-3" aria-label="Studio Trace">
+          <img src="/figma-assets/studio-trace-hand.png" alt="" width={47} height={71} className="h-[58px] w-[39px] object-contain xl:h-[71px] xl:w-[47px]" />
+          <span className="studio-wordmark text-[27px] leading-none tracking-[-0.035em] xl:text-[31.68px]">Studio Trace</span>
+        </div>
+        <div className="flex max-w-[230px] items-center gap-2.5 text-right text-[13px] leading-5 text-[var(--muted)] sm:max-w-none">
+          <img src="/figma-assets/privacy-shield.svg" alt="" width={18} height={18} className="size-[18px] shrink-0" />
+          <span>Saved only on this device. Nothing is uploaded.</span>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1500px] lg:grid-cols-[220px_minmax(420px,1fr)_minmax(360px,0.9fr)]">
-        <aside className="border-b border-[var(--line)] bg-white px-5 py-6 lg:min-h-[calc(100vh-65px)] lg:border-b-0 lg:border-r lg:px-6 lg:py-8">
-          <div className="mb-7 flex items-end justify-between lg:block">
-            <div><p className="text-sm font-semibold">Your trace</p><p className="mt-1 text-sm text-[var(--muted)]">{progress} of 5 sections complete</p></div>
-            <div className="mt-4 h-1.5 w-24 overflow-hidden bg-[var(--blue-soft)] lg:w-full"><div className="h-full bg-[var(--blue)] transition-[width] duration-300" style={{ width: `${progress * 20}%` }} /></div>
+      <div className="studio-grid mx-auto grid w-full max-w-[1728px] gap-10 px-5 pb-10 pt-7 sm:px-8 xl:grid-cols-[230px_minmax(480px,650px)_minmax(360px,430px)] xl:gap-[clamp(32px,3vw,52px)] xl:px-[50px] xl:pb-[50px] xl:pt-[64px]">
+        <aside className="xl:w-[230px]">
+          <div className="mb-6 flex items-end justify-between gap-4 xl:block">
+            <div>
+              <h2 className="text-xl leading-6">Your trace</h2>
+              <p className="mt-1 text-[13px] leading-5 text-[var(--muted)]">{progress} of 5 sections complete</p>
+            </div>
+            <progress className="trace-progress h-2 w-28 overflow-hidden rounded-full xl:mt-3.5 xl:w-full" value={progress} max={5} aria-label={`${progress} of 5 sections complete`} />
           </div>
-          <nav aria-label="Passport sections" className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1">
-            {steps.map((step, index) => (
-              <button key={step.label} type="button" onClick={() => setActiveStep(index)} className={`group flex shrink-0 items-center gap-3 rounded-[3px] px-3 py-2.5 text-left text-sm transition lg:w-full ${activeStep === index ? 'bg-[var(--blue-soft)] font-semibold text-[var(--blue-deep)]' : 'text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]'}`}>
-                <span className={`grid size-6 shrink-0 place-items-center border text-xs ${completed[index] ? 'border-[var(--mint-dark)] bg-[var(--mint)] text-[var(--ink)]' : activeStep === index ? 'border-[var(--blue)] bg-white text-[var(--blue)]' : 'border-[var(--line-strong)] bg-white'}`}>{completed[index] ? <Check size={14} strokeWidth={2.5} /> : index + 1}</span>
-                <span>{step.label}</span>
-              </button>
-            ))}
-          </nav>
-          <button type="button" onClick={() => { setTrace(sampleTrace); setActiveStep(0); }} className="mt-7 flex items-center gap-2 text-sm font-semibold text-[var(--blue)] hover:underline hover:underline-offset-4"><Sparkles size={15} />Try a completed example</button>
+
+          <div className="rounded-[32px] bg-[var(--blue)] p-5 text-white xl:rounded-[38px] xl:p-7">
+            <button type="button" aria-expanded={mobileStepsOpen} onClick={() => setMobileStepsOpen((open) => !open)} className="flex min-h-11 w-full items-center justify-between text-left md:hidden">
+              <span><span className="block text-[13px] text-white/70">Step {activeStep + 1} of 5</span><span className="mt-0.5 block text-base">{steps[activeStep].label}</span></span>
+              <ChevronDown size={19} className={`transition ${mobileStepsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <nav aria-label="Passport sections" className={`${mobileStepsOpen ? 'mt-5 flex' : 'hidden'} flex-col gap-4 md:flex md:flex-row md:overflow-x-auto xl:block xl:space-y-5 xl:overflow-visible`}>
+              {steps.map((step, index) => (
+                <button key={step.label} type="button" onClick={() => goToStep(index)} className={`group flex min-h-11 shrink-0 items-center gap-3 rounded-2xl px-1 py-1 text-left text-sm leading-5 transition focus-visible:outline-white xl:w-full ${!reviewMode && activeStep === index ? 'font-medium' : 'text-white/78 hover:text-white'}`}>
+                  <span className={`grid size-[34px] shrink-0 place-items-center rounded-[10px] border text-[13px] transition ${completed[index] ? 'border-[var(--lime)] bg-[var(--lime)] text-[var(--blue)]' : !reviewMode && activeStep === index ? 'border-white bg-white text-[var(--blue)]' : 'border-white/85 bg-transparent text-white'}`}>{completed[index] ? <Check size={16} strokeWidth={2.5} /> : index + 1}</span>
+                  <span className="whitespace-nowrap xl:whitespace-normal">{step.label}</span>
+                </button>
+              ))}
+            </nav>
+            <button type="button" onClick={requestSample} className="mt-6 flex min-h-11 w-full items-center gap-2 border-t border-white/25 pt-5 text-left text-sm leading-5 text-white/80 transition hover:text-white">
+              <Sparkles size={16} />
+              <span>Try a completed example</span>
+            </button>
+          </div>
         </aside>
 
-        <section className="border-b border-[var(--line)] px-5 py-8 sm:px-8 lg:border-b-0 lg:border-r lg:px-10 lg:py-12">
-          <div className="mx-auto max-w-[680px]">
-            <div className="mb-9 flex items-start justify-between gap-5">
-              <div><p className="mb-2 text-sm font-semibold text-[var(--blue)]">Section {activeStep + 1}</p><h1 className="font-editorial text-[clamp(2rem,4vw,3.35rem)] leading-[0.98] tracking-[-0.04em]">{steps[activeStep].label}</h1></div>
-              <button type="button" aria-label="Clear all fields" onClick={() => setTrace(emptyTrace)} className="mt-1 grid size-10 place-items-center border border-[var(--line)] bg-white text-[var(--muted)] hover:border-[var(--ink)] hover:text-[var(--ink)]"><RotateCcw size={16} /></button>
-            </div>
+        <section className="min-w-0 xl:min-h-[790px]">
+          {reviewMode ? (
+            <ReviewPanel completed={completed} progress={progress} onEdit={goToStep} onCopy={copyDisclosure} onDownload={downloadDisclosure} />
+          ) : (
+            <>
+              <div className="mb-8 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[13px] text-[var(--muted)]">Section {activeStep + 1} of 5</p>
+                  <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.4rem)] leading-[1.05] tracking-[-0.035em]">{steps[activeStep].label}</h1>
+                </div>
+                <button type="button" onClick={() => hasWriting ? setDialogKind('clear') : clearDraft()} className="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm text-[var(--muted)] transition hover:bg-[var(--gray-soft)] hover:text-[var(--ink)]">
+                  <RotateCcw size={15} />
+                  <span className="hidden sm:inline">Clear saved draft</span>
+                </button>
+              </div>
 
-            {activeStep === 0 && <div className="space-y-6">
-              <Field label="Project title" hint="Use the name your audience will recognize."><input className={fieldClass} value={trace.project} onChange={(e) => set('project', e.target.value)} placeholder="e.g. Transit wayfinding prototype" /></Field>
-              <Field label="Creative discipline"><select className={fieldClass} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}>{['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}</select></Field>
-              <Field label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process."><textarea className={`${fieldClass} min-h-32 resize-y`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
-            </div>}
-            {activeStep === 1 && <Field label="How did AI participate?" hint="Name the tool, the request, and the stage of your process."><textarea className={`${fieldClass} min-h-52 resize-y`} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I asked Claude to…" /></Field>}
-            {activeStep === 2 && <div className="space-y-7">
-              <Field label="What did you accept or adapt?" hint="Explain why it improved the work."><textarea className={`${fieldClass} min-h-36 resize-y`} value={trace.accepted} onChange={(e) => set('accepted', e.target.value)} placeholder="I kept the suggestion to… because…" /></Field>
-              <Field label="What did you reject?" hint="Rejection is evidence of judgment, not a failed interaction."><textarea className={`${fieldClass} min-h-36 resize-y`} value={trace.rejected} onChange={(e) => set('rejected', e.target.value)} placeholder="I chose not to… because…" /></Field>
-            </div>}
-            {activeStep === 3 && <Field label="What did you verify?" hint="Include sources, comparisons, or checks you performed yourself."><textarea className={`${fieldClass} min-h-52 resize-y`} value={trace.verified} onChange={(e) => set('verified', e.target.value)} placeholder="I checked… against…" /></Field>}
-            {activeStep === 4 && <Field label="Which decisions remained yours?" hint="Be concrete about interpretation, direction, and final choices."><textarea className={`${fieldClass} min-h-52 resize-y`} value={trace.humanDecisions} onChange={(e) => set('humanDecisions', e.target.value)} placeholder="I remained responsible for…" /></Field>}
+              {attemptedStep === activeStep && !completed[activeStep] && <p role="alert" className="mb-6 rounded-[16px] bg-[var(--error-wash)] px-4 py-3 text-sm leading-5 text-[var(--error)]">Complete the highlighted {steps[activeStep].fields.length === 1 ? 'answer' : 'answers'} before continuing.</p>}
 
-            <div className="mt-10 flex items-center justify-between border-t border-[var(--line)] pt-5">
-              <button type="button" disabled={activeStep === 0} onClick={() => setActiveStep((step) => step - 1)} className="text-sm font-semibold disabled:invisible">Previous</button>
-              {activeStep < steps.length - 1 ? <button type="button" onClick={() => setActiveStep((step) => step + 1)} className="bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--blue-deep)]">Continue</button> : <button type="button" onClick={copyDisclosure} className="bg-[var(--blue)] px-5 py-3 text-sm font-semibold text-white hover:bg-[var(--blue-deep)]">Copy passport</button>}
-            </div>
-          </div>
+              {activeStep === 0 && <div className="space-y-9 xl:space-y-11">
+                <Field htmlFor="project" label="Project title" hint="Use the name your audience will recognize." error={fieldError('project')}><input id="project" aria-invalid={fieldError('project')} className={`${fieldClass} h-[52px] rounded-full`} value={trace.project} onChange={(e) => set('project', e.target.value)} placeholder="e.g. Transit wayfinding prototype" /></Field>
+                <Field htmlFor="discipline" label="Creative discipline" error={fieldError('discipline')}><div className="relative"><select id="discipline" aria-invalid={fieldError('discipline')} className={`${fieldClass} h-[52px] appearance-none rounded-full pr-12`} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}>{['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}</select><img src="/figma-assets/caret-down.svg" alt="" width={18} height={18} className="pointer-events-none absolute right-5 top-1/2 size-[18px] -translate-y-1/2" /></div></Field>
+                <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process." error={fieldError('intent')}><textarea id="intent" aria-invalid={fieldError('intent')} className={`${fieldClass} min-h-[188px] resize-y rounded-[24px] py-4`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
+              </div>}
+              {activeStep === 1 && <Field htmlFor="aiUse" label="How did AI participate?" hint="Name the tool, the request, and the stage of your process." error={fieldError('aiUse')}><textarea id="aiUse" aria-invalid={fieldError('aiUse')} className={`${fieldClass} min-h-[250px] resize-y rounded-[24px] py-4`} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I asked Claude to…" /></Field>}
+              {activeStep === 2 && <div className="space-y-9">
+                <Field htmlFor="accepted" label="What did you accept or adapt?" hint="Explain why it improved the work." error={fieldError('accepted')}><textarea id="accepted" aria-invalid={fieldError('accepted')} className={`${fieldClass} min-h-[180px] resize-y rounded-[24px] py-4`} value={trace.accepted} onChange={(e) => set('accepted', e.target.value)} placeholder="I kept the suggestion to… because…" /></Field>
+                <Field htmlFor="rejected" label="What did you reject?" hint="Rejection is evidence of judgment, not a failed interaction." error={fieldError('rejected')}><textarea id="rejected" aria-invalid={fieldError('rejected')} className={`${fieldClass} min-h-[180px] resize-y rounded-[24px] py-4`} value={trace.rejected} onChange={(e) => set('rejected', e.target.value)} placeholder="I chose not to… because…" /></Field>
+              </div>}
+              {activeStep === 3 && <Field htmlFor="verified" label="What did you verify?" hint="Include sources, comparisons, or checks you performed yourself." error={fieldError('verified')}><textarea id="verified" aria-invalid={fieldError('verified')} className={`${fieldClass} min-h-[250px] resize-y rounded-[24px] py-4`} value={trace.verified} onChange={(e) => set('verified', e.target.value)} placeholder="I checked… against…" /></Field>}
+              {activeStep === 4 && <Field htmlFor="humanDecisions" label="Which decisions remained yours?" hint="Be concrete about interpretation, direction, and final choices." error={fieldError('humanDecisions')}><textarea id="humanDecisions" aria-invalid={fieldError('humanDecisions')} className={`${fieldClass} min-h-[250px] resize-y rounded-[24px] py-4`} value={trace.humanDecisions} onChange={(e) => set('humanDecisions', e.target.value)} placeholder="I remained responsible for…" /></Field>}
+
+              <div className="mt-10 flex items-center justify-between border-t border-[var(--gray-light)] pt-6">
+                <button type="button" disabled={activeStep === 0} onClick={() => goToStep(activeStep - 1)} className="min-h-12 rounded-full px-4 text-base text-[var(--muted)] transition hover:bg-[var(--gray-soft)] hover:text-[var(--ink)] disabled:invisible">Back</button>
+                <button type="button" onClick={continueFlow} className="min-h-12 rounded-full bg-[var(--lime)] px-6 text-base text-[var(--blue)] transition hover:-translate-y-0.5 hover:bg-[var(--lime-bright)]">{activeStep < steps.length - 1 ? `Continue to ${steps[activeStep].shortLabel}` : 'Review passport'}</button>
+              </div>
+            </>
+          )}
         </section>
 
-        <aside className="bg-[var(--preview)] px-5 py-8 sm:px-8 lg:min-h-[calc(100vh-65px)] lg:px-9 lg:py-12">
-          <div className="mx-auto max-w-[560px] lg:sticky lg:top-8">
-            <div className="mb-4 flex items-center justify-between"><p className="text-sm font-semibold">Live passport</p><div className="flex gap-2"><IconButton label={copied ? 'Copied' : 'Copy'} onClick={copyDisclosure} icon={copied ? <Check size={15} /> : <Clipboard size={15} />} /><IconButton label="Download" onClick={downloadDisclosure} icon={<Download size={15} />} /></div></div>
-            <article className="passport-sheet relative overflow-hidden bg-white px-6 py-7 sm:px-8 sm:py-9">
-              <div className="passport-stripe" aria-hidden="true" />
-              <div className="mb-8 flex items-start justify-between gap-4 border-b border-[var(--ink)] pb-5"><div><p className="mb-1 text-xs font-bold text-[var(--blue)]">CREATIVE PROCESS PASSPORT</p><h2 className="font-editorial text-3xl leading-none tracking-[-0.035em]">{trace.project || 'Untitled creative work'}</h2></div><span className="border border-[var(--ink)] px-2 py-1 text-[11px] font-semibold">{trace.discipline}</span></div>
-              <PassportSection title="Creative intent" text={trace.intent} />
-              <PassportSection title="Role of AI" text={trace.aiUse} />
-              <PassportSection title="Human judgment" text={trace.accepted || trace.rejected ? `Accepted or adapted: ${trace.accepted || '—'}\n\nRejected: ${trace.rejected || '—'}` : ''} />
-              <PassportSection title="Verification" text={trace.verified} />
-              <PassportSection title="Authorship" text={trace.humanDecisions} />
-              <footer className="mt-8 flex items-center justify-between border-t border-[var(--line)] pt-4 text-[11px] text-[var(--muted)]"><span>StudioTrace · Sylvia Zamora</span><span>{progress}/5 documented</span></footer>
-            </article>
-            <p className="mt-4 flex gap-2 text-xs leading-5 text-[var(--muted)]"><ShieldCheck className="mt-0.5 shrink-0" size={14} />StudioTrace does not save or transmit your entries. Avoid including confidential client or school work.</p>
-          </div>
+        <aside className="min-w-0 xl:self-start">
+          <Passport trace={trace} completed={completed} activeStep={activeStep} reviewMode={reviewMode} progress={progress} onCopy={copyDisclosure} onDownload={downloadDisclosure} />
+          <p className="mt-4 flex gap-2 text-[13px] leading-5 text-[var(--muted)]">
+            <img src="/figma-assets/privacy-shield.svg" alt="" width={16} height={16} className="mt-0.5 size-4 shrink-0" />
+            <span>Your draft is saved in this browser and never uploaded. Avoid including confidential client or school work.</span>
+          </p>
         </aside>
       </div>
+
+      <div aria-live="polite" aria-atomic="true" className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-5 py-3 text-sm text-white shadow-lg transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}>{toast}</div>
+
+      <AlertDialog open={dialogKind !== null} onOpenChange={(open) => { if (!open) setDialogKind(null); }}>
+        <AlertDialogContent className="max-w-[420px] gap-0 rounded-[28px] border border-[var(--gray)] bg-white p-0 text-[var(--ink)] shadow-2xl">
+          <AlertDialogHeader className="items-start gap-2 p-7 text-left">
+            <AlertDialogTitle className="text-2xl font-normal tracking-[-0.03em]">{dialogKind === 'sample' ? 'Replace your current draft?' : 'Clear your saved draft?'}</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-6 text-[var(--muted)]">{dialogKind === 'sample' ? 'The completed example will replace what you have written on this device.' : 'Everything you have written will be removed from this browser.'}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="m-0 flex-row justify-end gap-2 rounded-b-[28px] border-t border-[var(--gray-light)] bg-white p-5">
+            <AlertDialogCancel className="min-h-11 rounded-full border border-[var(--gray)] bg-white px-5 text-[var(--ink)] hover:bg-[var(--gray-soft)]">Keep my draft</AlertDialogCancel>
+            <AlertDialogAction onClick={dialogKind === 'sample' ? loadSample : clearDraft} className="min-h-11 rounded-full bg-[var(--blue)] px-5 text-white hover:bg-[var(--blue-dark)]">{dialogKind === 'sample' ? 'Load example' : 'Clear draft'}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return <label className="block"><span className="mb-1.5 block text-[15px] font-bold">{label}</span>{hint && <span className="mb-3 block max-w-[58ch] text-sm leading-5 text-[var(--muted)]">{hint}</span>}{children}</label>;
+function Field({ htmlFor, label, hint, error, children }: { htmlFor: string; label: string; hint?: string; error?: boolean; children: React.ReactNode }) {
+  return <div><label htmlFor={htmlFor} className="block text-xl leading-6 text-[var(--blue)]">{label}</label>{hint ? <p className="mb-3 mt-1.5 max-w-[62ch] text-sm leading-5 text-[var(--muted)]">{hint}</p> : <span className="block h-3" />}{children}{error && <p className="mt-2 text-sm leading-5 text-[var(--error)]">Add an answer to continue.</p>}</div>;
 }
 
-function PassportSection({ title, text }: { title: string; text: string }) {
-  return <section className="passport-section grid grid-cols-[7.5rem_1fr] gap-4 border-b border-[var(--line)] py-4 last:border-b-0"><h3 className="text-xs font-bold text-[var(--blue-deep)]">{title}</h3><p className={`whitespace-pre-line text-[13px] leading-5 ${text ? 'text-[var(--ink)]' : 'italic text-[var(--muted)]'}`}>{text || 'Add this part of your process.'}</p></section>;
+function ReviewPanel({ completed, progress, onEdit, onCopy, onDownload }: { completed: boolean[]; progress: number; onEdit: (index: number) => void; onCopy: () => void; onDownload: () => void }) {
+  const missing = completed.map((done, index) => ({ done, index })).filter(({ done }) => !done);
+  return <div>
+    <p className="text-[13px] text-[var(--muted)]">Review</p>
+    <h1 className="mt-1 text-[clamp(2.2rem,4vw,3.5rem)] leading-[0.98] tracking-[-0.045em]">Your creative process, made visible.</h1>
+    <p className="mt-5 max-w-[58ch] text-base leading-7 text-[var(--muted)]">Read the complete passport on the right. Tighten anything that does not clearly show your intent, judgment, verification, or authorship.</p>
+
+    <div className={`mt-9 rounded-[24px] border p-6 ${missing.length ? 'border-[var(--gray)]' : 'border-[var(--lime)] bg-[var(--lime-wash)]'}`}>
+      {missing.length ? <>
+        <h2 className="text-xl">{missing.length} {missing.length === 1 ? 'section needs' : 'sections need'} attention</h2>
+        <div className="mt-4 flex flex-wrap gap-2">{missing.map(({ index }) => <button type="button" key={steps[index].label} onClick={() => onEdit(index)} className="min-h-11 rounded-full border border-[var(--gray)] px-4 text-sm text-[var(--blue)] transition hover:border-[var(--blue)]">Edit {steps[index].label.toLowerCase()}</button>)}</div>
+      </> : <div className="flex items-start gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lime)] text-[var(--blue)]"><Check size={17} /></span><div><h2 className="text-xl">All five sections are complete</h2><p className="mt-1 text-sm leading-5 text-[var(--muted)]">Your passport is ready to copy or download.</p></div></div>}
+    </div>
+
+    <div className="mt-8 flex flex-wrap items-center gap-3">
+      <button type="button" onClick={onCopy} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full bg-[var(--blue)] px-6 text-base text-white transition hover:bg-[var(--blue-dark)] disabled:cursor-not-allowed disabled:opacity-40"><Clipboard size={17} />Copy passport</button>
+      <button type="button" onClick={onDownload} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full border border-[var(--gray)] px-6 text-base text-[var(--ink)] transition hover:border-[var(--blue)] hover:text-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-40"><Download size={17} />Download Markdown</button>
+    </div>
+    <button type="button" onClick={() => onEdit(0)} className="mt-8 min-h-11 text-sm text-[var(--muted)] underline decoration-[var(--gray)] underline-offset-4 hover:text-[var(--ink)]">Return to editing</button>
+  </div>;
 }
 
-function IconButton({ label, icon, onClick }: { label: string; icon: React.ReactNode; onClick: () => void }) {
-  return <button type="button" onClick={onClick} aria-label={label} className="flex items-center gap-1.5 border border-[var(--line-strong)] bg-white px-2.5 py-2 text-xs font-semibold hover:border-[var(--ink)]">{icon}<span className="hidden sm:inline">{label}</span></button>;
+function Passport({ trace, completed, activeStep, reviewMode, progress, onCopy, onDownload }: { trace: Trace; completed: boolean[]; activeStep: number; reviewMode: boolean; progress: number; onCopy: () => void; onDownload: () => void }) {
+  return <article className="overflow-hidden rounded-[36px] border border-[var(--gray)] bg-white xl:rounded-[44px]">
+    <header className="flex min-h-[78px] items-center justify-between gap-4 border-b border-[var(--gray-light)] px-6 py-5">
+      <div><p className="text-xl leading-6">{reviewMode ? 'Your passport' : 'Live preview'}</p><p className="mt-1 text-[13px] text-[var(--muted)]">{reviewMode ? 'Complete document' : 'Focused on this section'}</p></div>
+      <div className="flex gap-2"><IconButton label="Copy passport" onClick={onCopy} disabled={progress === 0} icon={<Clipboard size={15} />} /><IconButton label="Download passport as Markdown" onClick={onDownload} disabled={progress === 0} icon={<Download size={15} />} /></div>
+    </header>
+    <div className="px-6 py-8">
+      <div className="mb-8">
+        <p className="mb-2 text-sm text-[var(--blue)]">Creative process passport</p>
+        <h2 className="text-[clamp(1.75rem,3vw,2.3rem)] leading-[1.02] tracking-[-0.04em]">{trace.project || 'Untitled creative work'}</h2>
+        <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline}</span>
+      </div>
+      <div className="border-t border-[var(--ink)]">
+        {previewSections.map((section, index) => {
+          const visible = reviewMode || completed[index] || activeStep === index;
+          if (!visible) return null;
+          return <PassportSection key={section.title} number={section.number} title={section.title} text={section.value(trace)} prompt={section.prompt} current={!reviewMode && activeStep === index} />;
+        })}
+      </div>
+      {!reviewMode && progress === 0 && activeStep !== 0 && <p className="py-6 text-sm leading-6 text-[var(--muted)]">Completed sections will collect here as you move through the trace.</p>}
+      <footer className="mt-8 flex items-center justify-between gap-4 border-t border-[var(--gray-light)] pt-5 text-[13px] text-[var(--muted)]"><span>Studio Trace · Sylvia Zamora</span><span className="rounded-full bg-[var(--lime)] px-3 py-1 text-[var(--blue)]">{progress}/5 documented</span></footer>
+    </div>
+  </article>;
+}
+
+function PassportSection({ number, title, text, prompt, current }: { number: string; title: string; text: string; prompt: string; current: boolean }) {
+  return <section className={`passport-section grid grid-cols-[34px_1fr] gap-x-3 gap-y-2 border-b py-5 transition ${current ? 'border-[var(--blue)]' : 'border-[var(--gray-light)]'}`}>
+    <span className="text-[13px] text-[var(--blue)]">{number}</span>
+    <div><h3 className="text-sm leading-5 text-[var(--blue)]">{title}</h3><p className={`mt-2 whitespace-pre-line text-sm leading-6 ${text ? 'text-[var(--ink)]' : 'text-[var(--muted)]'}`}>{text || prompt}</p></div>
+  </section>;
+}
+
+function IconButton({ label, icon, onClick, disabled }: { label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }) {
+  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid size-10 place-items-center rounded-full border border-[var(--gray-light)] bg-white text-[var(--ink)] transition hover:border-[var(--blue)] hover:text-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-35">{icon}</button>;
 }
