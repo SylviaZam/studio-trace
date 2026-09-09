@@ -25,7 +25,3 @@ npm run lint      # oxlint
 ```
 
 Built with React 19, Vite, and Tailwind CSS. UI primitives are stock [shadcn](https://ui.shadcn.com) components on [Base UI](https://base-ui.com).
-
-## Status
-
-Independent project by Sylvia Zamora, built for the Claude Campus Ambassador program. Not affiliated with or endorsed by Anthropic.
