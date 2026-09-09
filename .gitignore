@@ -30,3 +30,6 @@ yarn-error.log*
 
 # personal working notes, not part of the published project
 /HANDOFF-BRIEF.md
+
+# Local Netlify folder
+.netlify
