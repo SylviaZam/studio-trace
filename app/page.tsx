@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronDown, Clipboard, Download, RotateCcw, Sparkles } from 'lucide-react';
+import { interviewGuide, microExamples, renderRecord } from '@/lib/trace-record';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,13 +16,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type Trace = { project: string; discipline: string; intent: string; aiUse: string; accepted: string; rejected: string; verified: string; humanDecisions: string };
+type Trace = { project: string; discipline: string; intent: string; aiUse: string; accepted: string; rejected: string; verified: string; humanDecisions: string; creator: string; workUrl: string; workVersion: string; example: string };
 type DialogKind = 'sample' | 'clear' | null;
 
 const storageKey = 'studio-trace-draft-v1';
-const emptyTrace: Trace = { project: '', discipline: 'Interaction design', intent: '', aiUse: '', accepted: '', rejected: '', verified: '', humanDecisions: '' };
+const emptyTrace: Trace = { project: '', discipline: '', intent: '', aiUse: '', accepted: '', rejected: '', verified: '', humanDecisions: '', creator: '', workUrl: '', workVersion: '', example: '' };
 
 const sampleTrace: Trace = {
+  ...emptyTrace,
+  example: 'yes',
   project: 'Transit wayfinding prototype',
   discipline: 'Interaction design',
   intent: 'Help first-time riders understand transfers without adding more visual noise to an already dense map.',
@@ -33,11 +36,11 @@ const sampleTrace: Trace = {
 };
 
 const steps = [
-  { label: 'Frame the work', shortLabel: 'the AI role', fields: ['project', 'discipline', 'intent'] },
-  { label: 'Name the AI role', shortLabel: 'your judgment', fields: ['aiUse'] },
-  { label: 'Show your judgment', shortLabel: 'verification', fields: ['accepted', 'rejected'] },
-  { label: 'Record verification', shortLabel: 'authorship', fields: ['verified'] },
-  { label: 'Claim your authorship', shortLabel: 'review', fields: ['humanDecisions'] },
+  { label: 'Frame the work', fields: ['project', 'discipline', 'intent'] },
+  { label: 'Name the AI role', fields: ['aiUse'] },
+  { label: 'Show your judgment', fields: ['accepted', 'rejected'] },
+  { label: 'Record verification', fields: ['verified'] },
+  { label: 'Claim your authorship', fields: ['humanDecisions'] },
 ] as const;
 
 const previewSections = [
@@ -74,7 +77,17 @@ export default function Home() {
     window.queueMicrotask(() => {
       try {
         const saved = window.localStorage.getItem(storageKey);
-        if (saved) setTrace({ ...emptyTrace, ...(JSON.parse(saved) as Partial<Trace>) });
+        if (saved) {
+          const parsed: unknown = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            const next = { ...emptyTrace };
+            for (const key of Object.keys(emptyTrace) as (keyof Trace)[]) {
+              const value = (parsed as Record<string, unknown>)[key];
+              if (typeof value === 'string') next[key] = value;
+            }
+            setTrace(next);
+          }
+        }
       } catch {
         window.localStorage.removeItem(storageKey);
       } finally {
@@ -95,55 +108,34 @@ export default function Home() {
     if (!context?.registerTool) return;
 
     const lifecycle = new AbortController();
-    const required = ['project', 'intent', 'aiUse', 'accepted', 'rejected', 'verified', 'humanDecisions'] as const;
-
     void Promise.resolve(context.registerTool({
-      name: 'populate_creative_process_passport',
-      title: 'Populate creative process passport',
-      description: 'Fill the visible StudioTrace passport with a creator’s own account of how AI participated in their work.',
+      name: 'get_creative_process_interview',
+      title: 'Get a creative process interview question',
+      description: 'Return an interview question for the creator. This tool cannot read or write their draft. Ask questions; never author answers.',
       inputSchema: {
         type: 'object',
         properties: {
-          project: { type: 'string' }, discipline: { type: 'string' }, intent: { type: 'string' }, aiUse: { type: 'string' },
-          accepted: { type: 'string' }, rejected: { type: 'string' }, verified: { type: 'string' }, humanDecisions: { type: 'string' },
+          section: { type: 'string', enum: Object.keys(microExamples) },
         },
-        required: [...required],
+        required: ['section'],
         additionalProperties: false,
       },
-      annotations: { readOnlyHint: false, untrustedContentHint: true },
+      annotations: { readOnlyHint: true },
       execute(input: unknown) {
-        if (!input || typeof input !== 'object') throw new Error('Passport details must be an object.');
+        if (!input || typeof input !== 'object') throw new Error('Choose an interview section.');
         const candidate = input as Record<string, unknown>;
-        if (required.some((field) => typeof candidate[field] !== 'string' || !(candidate[field] as string).trim())) throw new Error('Every passport section must contain the creator’s own account.');
-        const next: Trace = {
-          project: candidate.project as string,
-          discipline: typeof candidate.discipline === 'string' && candidate.discipline.trim() ? candidate.discipline : 'Other',
-          intent: candidate.intent as string,
-          aiUse: candidate.aiUse as string,
-          accepted: candidate.accepted as string,
-          rejected: candidate.rejected as string,
-          verified: candidate.verified as string,
-          humanDecisions: candidate.humanDecisions as string,
-        };
-        setTrace(next);
-        setActiveStep(0);
-        setReviewMode(false);
-        return { status: 'populated', project: next.project, sectionsComplete: 5 };
+        if (Object.keys(candidate).some(key => key !== 'section')) throw new Error('This interview tool does not accept answers.');
+        return interviewGuide(candidate.section);
       },
     }, { signal: lifecycle.signal })).catch(() => undefined);
 
     return () => lifecycle.abort();
   }, []);
 
-  const disclosure = useMemo(() => {
-    const title = trace.project || 'Untitled creative work';
-    return `${title}\n\nCREATIVE INTENT\n${trace.intent || 'Not recorded yet.'}\n\nROLE OF AI\n${trace.aiUse || 'Not recorded yet.'}\n\nHUMAN JUDGMENT\nAccepted or adapted: ${trace.accepted || 'Not recorded yet.'}\nRejected: ${trace.rejected || 'Not recorded yet.'}\n\nVERIFICATION\n${trace.verified || 'Not recorded yet.'}\n\nAUTHORSHIP\n${trace.humanDecisions || 'Not recorded yet.'}`;
-  }, [trace]);
-
   const copyDisclosure = async () => {
     if (progress === 0) return;
     try {
-      await navigator.clipboard.writeText(disclosure);
+      await navigator.clipboard.writeText(renderRecord(trace, new Date().toISOString()));
       announce('Passport copied');
     } catch {
       announce('Copy failed. Try downloading instead.');
@@ -152,7 +144,7 @@ export default function Home() {
 
   const downloadDisclosure = () => {
     if (progress === 0) return;
-    const markdown = `# ${trace.project || 'Creative Process Passport'}\n\n**Discipline:** ${trace.discipline}\n\n${disclosure.split('\n\n').slice(1).map((section) => { const [heading, ...body] = section.split('\n'); return `## ${heading}\n\n${body.join('\n')}`; }).join('\n\n')}\n`;
+    const markdown = renderRecord(trace, new Date().toISOString());
     const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -252,7 +244,7 @@ export default function Home() {
 
         <section className="min-w-0 xl:min-h-[790px]">
           {reviewMode ? (
-            <ReviewPanel completed={completed} progress={progress} onEdit={goToStep} onCopy={copyDisclosure} onDownload={downloadDisclosure} />
+            <div className="space-y-6"><div className="space-y-4"><h2 className="text-xl">Make this reflection citable</h2><p className="text-sm leading-6 text-[var(--muted)]">Optional context for your reader. Exports include the date from your device. A typed name is self-declared, not a verified signature.</p>{([['creator', 'Creator name'], ['workUrl', 'Work URL or reference'], ['workVersion', 'Work version (e.g. prototype 2)']] as const).map(([key, label]) => <Field key={key} htmlFor={key} label={label}><input id={key} className={`${fieldClass} h-[52px] rounded-full`} value={trace[key]} onChange={e => set(key, e.target.value)} /></Field>)}</div><ReviewPanel completed={completed} progress={progress} onEdit={goToStep} onCopy={copyDisclosure} onDownload={downloadDisclosure} /></div>
           ) : (
             <>
               <div className="mb-8 flex items-center justify-between gap-4">
@@ -270,20 +262,20 @@ export default function Home() {
 
               {activeStep === 0 && <div className="space-y-9 xl:space-y-11">
                 <Field htmlFor="project" label="Project title" hint="Use the name your audience will recognize." error={fieldError('project')}><input id="project" aria-invalid={fieldError('project')} className={`${fieldClass} h-[52px] rounded-full`} value={trace.project} onChange={(e) => set('project', e.target.value)} placeholder="e.g. Transit wayfinding prototype" /></Field>
-                <Field htmlFor="discipline" label="Creative discipline" error={fieldError('discipline')}><div className="relative"><select id="discipline" aria-invalid={fieldError('discipline')} className={`${fieldClass} h-[52px] appearance-none rounded-full pr-12`} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}>{['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}</select><img src="/figma-assets/caret-down.svg" alt="" width={18} height={18} className="pointer-events-none absolute right-5 top-1/2 size-[18px] -translate-y-1/2" /></div></Field>
-                <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process." error={fieldError('intent')}><textarea id="intent" aria-invalid={fieldError('intent')} className={`${fieldClass} min-h-[188px] resize-y rounded-[24px] py-4`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
+                <Field htmlFor="discipline" label="Creative discipline" error={fieldError('discipline')}><div className="relative"><select id="discipline" aria-invalid={fieldError('discipline')} className={`${fieldClass} h-[52px] appearance-none rounded-full pr-12`} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}><option value="" disabled>Select your discipline</option>{['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}</select><img src="/figma-assets/caret-down.svg" alt="" width={18} height={18} className="pointer-events-none absolute right-5 top-1/2 size-[18px] -translate-y-1/2" /></div></Field>
+                <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process." error={fieldError('intent')}><textarea id="intent" aria-describedby="intent-example" aria-invalid={fieldError('intent')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
               </div>}
-              {activeStep === 1 && <Field htmlFor="aiUse" label="How did AI participate?" hint="Name the tool, the request, and the stage of your process." error={fieldError('aiUse')}><textarea id="aiUse" aria-invalid={fieldError('aiUse')} className={`${fieldClass} min-h-[250px] resize-y rounded-[24px] py-4`} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I asked Claude to…" /></Field>}
+              {activeStep === 1 && <Field htmlFor="aiUse" label="How did AI participate?" hint="Name the tool, the request, and the stage of your process." error={fieldError('aiUse')}><textarea id="aiUse" aria-describedby="aiUse-example" aria-invalid={fieldError('aiUse')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I used [tool] to…" /></Field>}
               {activeStep === 2 && <div className="space-y-9">
-                <Field htmlFor="accepted" label="What did you accept or adapt?" hint="Explain why it improved the work." error={fieldError('accepted')}><textarea id="accepted" aria-invalid={fieldError('accepted')} className={`${fieldClass} min-h-[180px] resize-y rounded-[24px] py-4`} value={trace.accepted} onChange={(e) => set('accepted', e.target.value)} placeholder="I kept the suggestion to… because…" /></Field>
-                <Field htmlFor="rejected" label="What did you reject?" hint="Rejection is evidence of judgment, not a failed interaction." error={fieldError('rejected')}><textarea id="rejected" aria-invalid={fieldError('rejected')} className={`${fieldClass} min-h-[180px] resize-y rounded-[24px] py-4`} value={trace.rejected} onChange={(e) => set('rejected', e.target.value)} placeholder="I chose not to… because…" /></Field>
+                <Field htmlFor="accepted" label="What did you accept or adapt?" hint="Explain why it improved the work." error={fieldError('accepted')}><textarea id="accepted" aria-describedby="accepted-example" aria-invalid={fieldError('accepted')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.accepted} onChange={(e) => set('accepted', e.target.value)} placeholder="I kept the suggestion to… because…" /></Field>
+                <Field htmlFor="rejected" label="What did you reject?" hint="Rejection is evidence of judgment, not a failed interaction." error={fieldError('rejected')}><textarea id="rejected" aria-describedby="rejected-example" aria-invalid={fieldError('rejected')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.rejected} onChange={(e) => set('rejected', e.target.value)} placeholder="I chose not to… because…" /></Field>
               </div>}
-              {activeStep === 3 && <Field htmlFor="verified" label="What did you verify?" hint="Include sources, comparisons, or checks you performed yourself." error={fieldError('verified')}><textarea id="verified" aria-invalid={fieldError('verified')} className={`${fieldClass} min-h-[250px] resize-y rounded-[24px] py-4`} value={trace.verified} onChange={(e) => set('verified', e.target.value)} placeholder="I checked… against…" /></Field>}
-              {activeStep === 4 && <Field htmlFor="humanDecisions" label="Which decisions remained yours?" hint="Be concrete about interpretation, direction, and final choices." error={fieldError('humanDecisions')}><textarea id="humanDecisions" aria-invalid={fieldError('humanDecisions')} className={`${fieldClass} min-h-[250px] resize-y rounded-[24px] py-4`} value={trace.humanDecisions} onChange={(e) => set('humanDecisions', e.target.value)} placeholder="I remained responsible for…" /></Field>}
+              {activeStep === 3 && <Field htmlFor="verified" label="What did you verify?" hint="Include sources, comparisons, or checks you performed yourself." error={fieldError('verified')}><textarea id="verified" aria-describedby="verified-example" aria-invalid={fieldError('verified')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.verified} onChange={(e) => set('verified', e.target.value)} placeholder="I checked… against…" /></Field>}
+              {activeStep === 4 && <Field htmlFor="humanDecisions" label="Which decisions remained yours?" hint="Be concrete about interpretation, direction, and final choices." error={fieldError('humanDecisions')}><textarea id="humanDecisions" aria-describedby="humanDecisions-example" aria-invalid={fieldError('humanDecisions')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.humanDecisions} onChange={(e) => set('humanDecisions', e.target.value)} placeholder="I remained responsible for…" /></Field>}
 
               <div className="mt-10 flex items-center justify-between border-t border-[var(--gray-light)] pt-6">
                 <button type="button" disabled={activeStep === 0} onClick={() => goToStep(activeStep - 1)} className="min-h-12 rounded-full px-4 text-base text-[var(--muted)] transition hover:bg-[var(--gray-soft)] hover:text-[var(--ink)] disabled:invisible">Back</button>
-                <button type="button" onClick={continueFlow} className="min-h-12 rounded-full bg-[var(--lime)] px-6 text-base text-[var(--blue)] transition hover:-translate-y-0.5 hover:bg-[var(--lime-bright)]">{activeStep < steps.length - 1 ? `Continue to ${steps[activeStep].shortLabel}` : 'Review passport'}</button>
+                <button type="button" onClick={continueFlow} className="min-h-12 rounded-full bg-[var(--lime)] px-6 text-base text-[var(--blue)] transition hover:-translate-y-0.5 hover:bg-[var(--lime-bright)]">{activeStep < steps.length - 1 ? `Continue to ${steps[activeStep + 1].label.toLowerCase()}` : 'Review passport'}</button>
               </div>
             </>
           )}
@@ -298,6 +290,7 @@ export default function Home() {
         </aside>
       </div>
 
+      <footer className="mx-auto max-w-[1728px] px-5 pb-8 sm:px-8 xl:px-[50px]"><details className="max-w-3xl text-sm leading-6 text-[var(--muted)]"><summary className="cursor-pointer py-3">About Studio Trace and using Claude</summary><p>Created by Sylvia Zamora to help creatives reflect on AI collaboration. Works with Claude and other tools; no AI account or API key is required. The example is fictional. The app does not call Claude or generate your answers.</p><p className="mt-3">To use Claude as a reflection partner, ask: “Interview me about my creative process, one question at a time. Ask what I accepted, rejected, and checked. Do not invent experiences or write my answers.” Write your own account here.</p><p className="mt-3">Built with React and Vinext using OpenAI Sites tooling; published through Sites. Independent project, not affiliated with or endorsed by Anthropic or OpenAI.</p></details></footer>
       <div aria-live="polite" aria-atomic="true" className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-5 py-3 text-sm text-white shadow-lg transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}>{toast}</div>
 
       <AlertDialog open={dialogKind !== null} onOpenChange={(open) => { if (!open) setDialogKind(null); }}>
@@ -317,7 +310,7 @@ export default function Home() {
 }
 
 function Field({ htmlFor, label, hint, error, children }: { htmlFor: string; label: string; hint?: string; error?: boolean; children: React.ReactNode }) {
-  return <div><label htmlFor={htmlFor} className="block text-xl leading-6 text-[var(--blue)]">{label}</label>{hint ? <p className="mb-3 mt-1.5 max-w-[62ch] text-sm leading-5 text-[var(--muted)]">{hint}</p> : <span className="block h-3" />}{children}{error && <p className="mt-2 text-sm leading-5 text-[var(--error)]">Add an answer to continue.</p>}</div>;
+  return <div><label htmlFor={htmlFor} className="block text-xl leading-6 text-[var(--blue)]">{label}</label>{hint ? <p className="mb-3 mt-1.5 max-w-[62ch] text-sm leading-5 text-[var(--muted)]">{hint}</p> : <span className="block h-3" />}{children}{microExamples[htmlFor] && <p id={`${htmlFor}-example`} className="mt-3 text-sm leading-6 text-[var(--muted)]"><span className="font-medium">Example: </span>{microExamples[htmlFor]}</p>}{error && <p className="mt-2 text-sm leading-5 text-[var(--error)]">Add an answer to continue.</p>}</div>;
 }
 
 function ReviewPanel({ completed, progress, onEdit, onCopy, onDownload }: { completed: boolean[]; progress: number; onEdit: (index: number) => void; onCopy: () => void; onDownload: () => void }) {
@@ -331,7 +324,7 @@ function ReviewPanel({ completed, progress, onEdit, onCopy, onDownload }: { comp
       {missing.length ? <>
         <h2 className="text-xl">{missing.length} {missing.length === 1 ? 'section needs' : 'sections need'} attention</h2>
         <div className="mt-4 flex flex-wrap gap-2">{missing.map(({ index }) => <button type="button" key={steps[index].label} onClick={() => onEdit(index)} className="min-h-11 rounded-full border border-[var(--gray)] px-4 text-sm text-[var(--blue)] transition hover:border-[var(--blue)]">Edit {steps[index].label.toLowerCase()}</button>)}</div>
-      </> : <div className="flex items-start gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lime)] text-[var(--blue)]"><Check size={17} /></span><div><h2 className="text-xl">All five sections are complete</h2><p className="mt-1 text-sm leading-5 text-[var(--muted)]">Your passport is ready to copy or download.</p></div></div>}
+      </> : <div className="flex items-start gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lime)] text-[var(--blue)]"><Check size={17} /></span><div><h2 className="text-xl">All five sections are complete</h2><p className="mt-1 text-sm leading-5 text-[var(--muted)]">Your reflection is ready to copy or download. Completeness does not verify its claims.</p></div></div>}
     </div>
 
     <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -350,9 +343,9 @@ function Passport({ trace, completed, activeStep, reviewMode, progress, onCopy, 
     </header>
     <div className="px-6 py-8">
       <div className="mb-8">
-        <p className="mb-2 text-sm text-[var(--blue)]">Creative process passport</p>
+        <p className="mb-2 text-sm text-[var(--blue)]">Creative process reflection</p><p className="mb-3 text-sm leading-5 text-[var(--muted)]">Self-reported. Studio Trace does not verify identity, sources, or authorship.</p>{trace.example === 'yes' && <p className="mb-3 text-sm font-medium text-[var(--blue)]">Illustrative example — not an actual project record. Clear it to start your own.</p>}
         <h2 className="text-[clamp(1.75rem,3vw,2.3rem)] leading-[1.02] tracking-[-0.04em]">{trace.project || 'Untitled creative work'}</h2>
-        <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline}</span>
+        <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline || 'Discipline not selected'}</span><dl className="mt-4 space-y-2 break-words text-sm text-[var(--muted)]"><div><dt className="inline font-medium">Creator: </dt><dd className="inline">{trace.creator || 'Not recorded'}</dd></div><div><dt className="inline font-medium">Work reference: </dt><dd className="inline">{trace.workUrl || 'Not recorded'}</dd></div><div><dt className="inline font-medium">Work version: </dt><dd className="inline">{trace.workVersion || 'Not recorded'}</dd></div></dl>
       </div>
       <div className="border-t border-[var(--ink)]">
         {previewSections.map((section, index) => {
