@@ -1,7 +1,3 @@
-'use client';
-
-/* oxlint-disable next/no-img-element -- Vinext's next/image shim causes a duplicate-React runtime error; these are local, dimensioned design assets. */
-
 import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronDown, Clipboard, Download, RotateCcw, Sparkles } from 'lucide-react';
 import { interviewGuide, microExamples, renderRecord } from '@/lib/trace-record';
@@ -46,7 +42,7 @@ const steps = [
 const previewSections = [
   { number: '01', title: 'Creative intent', prompt: 'What problem or question guided the work?', value: (trace: Trace) => trace.intent },
   { number: '02', title: 'Role of AI', prompt: 'What did the tool generate, critique, or help explore?', value: (trace: Trace) => trace.aiUse },
-  { number: '03', title: 'Human judgment', prompt: 'What did you keep—and what did you reject?', value: (trace: Trace) => trace.accepted || trace.rejected ? `Accepted or adapted: ${trace.accepted || '—'}\n\nRejected: ${trace.rejected || '—'}` : '' },
+  { number: '03', title: 'Human judgment', prompt: 'What did you keep, and what did you reject?', value: (trace: Trace) => trace.accepted || trace.rejected ? `Accepted or adapted: ${trace.accepted || '—'}\n\nRejected: ${trace.rejected || '—'}` : '' },
   { number: '04', title: 'Verification', prompt: 'How did you check the result?', value: (trace: Trace) => trace.verified },
   { number: '05', title: 'Authorship', prompt: 'Which decisions remained yours?', value: (trace: Trace) => trace.humanDecisions },
 ];
@@ -343,7 +339,7 @@ function Passport({ trace, completed, activeStep, reviewMode, progress, onCopy, 
     </header>
     <div className="px-6 py-8">
       <div className="mb-8">
-        <p className="mb-2 text-sm text-[var(--blue)]">Creative process reflection</p><p className="mb-3 text-sm leading-5 text-[var(--muted)]">Self-reported. Studio Trace does not verify identity, sources, or authorship.</p>{trace.example === 'yes' && <p className="mb-3 text-sm font-medium text-[var(--blue)]">Illustrative example — not an actual project record. Clear it to start your own.</p>}
+        <p className="mb-2 text-sm text-[var(--blue)]">Creative process reflection</p><p className="mb-3 text-sm leading-5 text-[var(--muted)]">Self-reported. Studio Trace does not verify identity, sources, or authorship.</p>{trace.example === 'yes' && <p className="mb-3 text-sm font-medium text-[var(--blue)]">Illustrative example, not an actual project record. Clear it to start your own.</p>}
         <h2 className="text-[clamp(1.75rem,3vw,2.3rem)] leading-[1.02] tracking-[-0.04em]">{trace.project || 'Untitled creative work'}</h2>
         <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline || 'Discipline not selected'}</span><dl className="mt-4 space-y-2 break-words text-sm text-[var(--muted)]"><div><dt className="inline font-medium">Creator: </dt><dd className="inline">{trace.creator || 'Not recorded'}</dd></div><div><dt className="inline font-medium">Work reference: </dt><dd className="inline">{trace.workUrl || 'Not recorded'}</dd></div><div><dt className="inline font-medium">Work version: </dt><dd className="inline">{trace.workVersion || 'Not recorded'}</dd></div></dl>
       </div>
