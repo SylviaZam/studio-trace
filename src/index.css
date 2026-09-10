@@ -169,7 +169,10 @@ textarea.field { scrollbar-color: var(--border) transparent; }
   display: grid;
   align-items: start;
   gap: 48px;
-  grid-template-columns: 260px minmax(0, 720px) minmax(440px, 576px);
+  /* Editor holds its 680-720 band first; the trace column yields, then the
+     gutters absorb whatever is left so 1920 matches the reference frame. */
+  grid-template-columns: 260px minmax(640px, 720px) minmax(400px, 576px);
+  justify-content: space-between;
 }
 @media (max-width: 1439px) {
   .studio-grid { grid-template-columns: 240px minmax(0, 1fr); gap: 40px; }

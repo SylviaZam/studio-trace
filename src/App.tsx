@@ -202,10 +202,10 @@ export default function Home() {
     <main className="studio-page min-h-screen">
       <PointerTrail />
 
-      <header className="studio-shell flex min-h-[96px] items-center justify-between gap-5 py-6">
+      <header className="studio-shell flex min-h-[96px] flex-wrap items-center justify-between gap-x-5 gap-y-3 py-6">
         <div className="flex items-center gap-3" aria-label="Studio Trace">
           <img src="/figma-assets/studio-trace-hand.png" alt="" width={28} height={41} className="h-[41px] w-[28px] object-contain" />
-          <span className="text-[26px] leading-none tracking-[-0.025em] sm:text-[31px]">Studio Trace</span>
+          <span className="whitespace-nowrap text-[26px] leading-none tracking-[-0.025em] sm:text-[31px]">Studio Trace</span>
         </div>
         <span className="pill meta">Private · Saved locally</span>
       </header>
