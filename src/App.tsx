@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import PointerTrail from './PointerTrail';
-import { Check, ChevronDown, Clipboard, Download, RotateCcw, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Clipboard, Download, Plus } from 'lucide-react';
 import { interviewGuide, microExamples, renderRecord } from '@/lib/trace-record';
 import {
   AlertDialog,
@@ -33,22 +33,23 @@ const sampleTrace: Trace = {
 };
 
 const steps = [
-  { label: 'Frame the work', fields: ['project', 'discipline', 'intent'] },
-  { label: 'Name the AI role', fields: ['aiUse'] },
-  { label: 'Show your judgment', fields: ['accepted', 'rejected'] },
-  { label: 'Record verification', fields: ['verified'] },
-  { label: 'Claim your authorship', fields: ['humanDecisions'] },
+  { label: 'Frame the work', eyebrow: 'Framing', blurb: 'Record what you set out to do before any tool entered the process.', fields: ['project', 'discipline', 'intent'] },
+  { label: 'Name the AI role', eyebrow: 'Role of AI', blurb: 'Capture how AI participated without giving it credit for decisions you made.', fields: ['aiUse'] },
+  { label: 'Show your judgment', eyebrow: 'Judgment', blurb: 'What you kept and what you turned down belong in the same place.', fields: ['accepted', 'rejected'] },
+  { label: 'Record verification', eyebrow: 'Verification', blurb: 'What you checked yourself, against what, and what is still uncertain.', fields: ['verified'] },
+  { label: 'Claim your authorship', eyebrow: 'Authorship', blurb: 'The decisions that stayed with you, stated concretely rather than claimed in general.', fields: ['humanDecisions'] },
 ] as const;
 
 const previewSections = [
-  { number: '01', title: 'Creative intent', prompt: 'What problem or question guided the work?', value: (trace: Trace) => trace.intent },
-  { number: '02', title: 'Role of AI', prompt: 'What did the tool generate, critique, or help explore?', value: (trace: Trace) => trace.aiUse },
-  { number: '03', title: 'Human judgment', prompt: 'What did you keep, and what did you reject?', value: (trace: Trace) => trace.accepted || trace.rejected ? `Accepted or adapted: ${trace.accepted || '—'}\n\nRejected: ${trace.rejected || '—'}` : '' },
-  { number: '04', title: 'Verification', prompt: 'How did you check the result?', value: (trace: Trace) => trace.verified },
-  { number: '05', title: 'Authorship', prompt: 'Which decisions remained yours?', value: (trace: Trace) => trace.humanDecisions },
+  { number: '01', title: 'Creative intent', prompt: 'Awaiting your documentation…', value: (trace: Trace) => trace.intent },
+  { number: '02', title: 'Role of AI', prompt: 'Awaiting your documentation…', value: (trace: Trace) => trace.aiUse },
+  { number: '03', title: 'Human judgment', prompt: 'Awaiting your documentation…', value: (trace: Trace) => trace.accepted || trace.rejected ? `Accepted or adapted: ${trace.accepted || '—'}\n\nRejected: ${trace.rejected || '—'}` : '' },
+  { number: '04', title: 'Verification', prompt: 'Awaiting your documentation…', value: (trace: Trace) => trace.verified },
+  { number: '05', title: 'Authorship', prompt: 'Awaiting your documentation…', value: (trace: Trace) => trace.humanDecisions },
 ];
 
-const fieldClass = 'trace-field w-full border border-[var(--gray)] bg-white px-5 text-base leading-6 text-[var(--ink)] outline-none transition placeholder:text-[var(--gray-dark)] hover:border-[var(--ink)] focus:border-[var(--blue)] focus:ring-4 focus:ring-[var(--blue-wash)] aria-invalid:border-[var(--error)] aria-invalid:ring-4 aria-invalid:ring-[var(--error-wash)]';
+const inputClass = 'field h-11 px-3.5 text-base leading-6';
+const areaClass = 'field min-h-[180px] resize-y px-4 py-3.5 text-base leading-6';
 
 export default function Home() {
   const [trace, setTrace] = useState<Trace>(emptyTrace);
@@ -195,111 +196,158 @@ export default function Home() {
   };
 
   const fieldError = (field: keyof Trace) => attemptedStep === activeStep && !trace[field].trim();
+  const step = steps[activeStep];
 
   return (
-    <main className="studio-page min-h-screen bg-white text-[var(--ink)]">
+    <main className="studio-page min-h-screen">
       <PointerTrail />
-      <header className="mx-auto flex min-h-[104px] w-full max-w-[1728px] items-center justify-between gap-5 px-5 py-4 sm:px-8 xl:min-h-[120px] xl:px-[50px]">
+
+      <header className="studio-shell flex min-h-[96px] items-center justify-between gap-5 py-6">
         <div className="flex items-center gap-3" aria-label="Studio Trace">
-          <img src="/figma-assets/studio-trace-hand.png" alt="" width={47} height={71} className="h-[58px] w-[39px] object-contain xl:h-[71px] xl:w-[47px]" />
-          <span className="studio-wordmark text-[27px] leading-none tracking-[-0.035em] xl:text-[31.68px]">Studio Trace</span>
+          <img src="/figma-assets/studio-trace-hand.png" alt="" width={28} height={41} className="h-[41px] w-[28px] object-contain" />
+          <span className="text-[26px] leading-none tracking-[-0.025em] sm:text-[31px]">Studio Trace</span>
         </div>
-        <div className="flex max-w-[230px] items-center gap-2.5 text-right text-[13px] leading-5 text-[var(--muted)] sm:max-w-none">
-          <img src="/figma-assets/privacy-shield.svg" alt="" width={18} height={18} className="size-[18px] shrink-0" />
-          <span>Saved only on this device. Nothing is uploaded.</span>
-        </div>
+        <span className="pill meta">Private · Saved locally</span>
       </header>
 
-      <div className="studio-grid mx-auto grid w-full max-w-[1728px] gap-10 px-5 pb-10 pt-7 sm:px-8 xl:grid-cols-[230px_minmax(480px,650px)_minmax(360px,430px)] xl:gap-[clamp(32px,3vw,52px)] xl:px-[50px] xl:pb-[50px] xl:pt-[64px]">
-        <aside className="xl:w-[230px]">
-          <div className="mb-6 flex items-end justify-between gap-4 xl:block">
+      <div className="studio-shell studio-grid pb-16">
+        <aside>
+          <div className="mb-4 flex items-end justify-between gap-4 lg:block">
             <div>
-              <h2 className="text-xl leading-6">Your trace</h2>
-              <p className="mt-1 text-[13px] leading-5 text-[var(--muted)]">{progress} of 5 sections complete</p>
+              <p className="meta text-[var(--muted)]">Your trace</p>
+              <p className="mt-2 text-[15px] leading-6 text-[var(--muted)]">{progress} of 5 decisions traced</p>
             </div>
-            <progress className="trace-progress h-2 w-28 overflow-hidden rounded-full xl:mt-3.5 xl:w-full" value={progress} max={5} aria-label={`${progress} of 5 sections complete`} />
+            <div className="trace-meter mt-3 w-32 lg:w-full" role="img" aria-label={`${progress} of 5 decisions traced`}>
+              <span style={{ width: `${(progress / 5) * 100}%` }} />
+            </div>
           </div>
 
-          <div className="rounded-[32px] bg-[var(--blue)] p-5 text-white xl:rounded-[38px] xl:p-7">
-            <button type="button" aria-expanded={mobileStepsOpen} onClick={() => setMobileStepsOpen((open) => !open)} className="flex min-h-11 w-full items-center justify-between text-left md:hidden">
-              <span><span className="block text-[13px] text-white/70">Step {activeStep + 1} of 5</span><span className="mt-0.5 block text-base">{steps[activeStep].label}</span></span>
-              <ChevronDown size={19} className={`transition ${mobileStepsOpen ? 'rotate-180' : ''}`} />
-            </button>
-            <nav aria-label="Creative process record sections" className={`${mobileStepsOpen ? 'mt-5 flex' : 'hidden'} flex-col gap-4 md:flex md:flex-row md:overflow-x-auto xl:block xl:space-y-5 xl:overflow-visible`}>
-              {steps.map((step, index) => (
-                <button key={step.label} type="button" onClick={() => goToStep(index)} className={`group flex min-h-11 shrink-0 items-center gap-3 rounded-2xl px-1 py-1 text-left text-sm leading-5 transition focus-visible:outline-white xl:w-full ${!reviewMode && activeStep === index ? 'font-medium' : 'text-white/78 hover:text-white'}`}>
-                  <span className={`grid size-[34px] shrink-0 place-items-center rounded-[10px] border text-[13px] transition ${completed[index] ? 'border-[var(--lime)] bg-[var(--lime)] text-[var(--blue)]' : !reviewMode && activeStep === index ? 'border-white bg-white text-[var(--blue)]' : 'border-white/85 bg-transparent text-white'}`}>{completed[index] ? <Check size={16} strokeWidth={2.5} /> : index + 1}</span>
-                  <span className="whitespace-nowrap xl:whitespace-normal">{step.label}</span>
+          <button type="button" aria-expanded={mobileStepsOpen} onClick={() => setMobileStepsOpen((open) => !open)} className="mt-5 flex min-h-11 w-full items-center justify-between rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left md:hidden">
+            <span>
+              <span className="meta block text-[var(--muted)]">Step {activeStep + 1} of 5</span>
+              <span className="mt-0.5 block text-base">{step.label}</span>
+            </span>
+            <ChevronDown size={18} className={mobileStepsOpen ? 'rotate-180 transition' : 'transition'} />
+          </button>
+
+          <nav aria-label="Creative process record sections" className={`${mobileStepsOpen ? 'mt-3 flex' : 'hidden'} flex-col gap-1 md:mt-5 md:flex`}>
+            {steps.map((item, index) => {
+              const state = completed[index] ? 'done' : !reviewMode && activeStep === index ? 'active' : 'idle';
+              return (
+                <button key={item.label} type="button" onClick={() => goToStep(index)} data-state={state} className="rail-step" aria-current={!reviewMode && activeStep === index ? 'step' : undefined}>
+                  <span className="step-chip meta">{completed[index] ? <Check size={13} strokeWidth={2.75} /> : `0${index + 1}`}</span>
+                  <span className="text-[15px] leading-6">{item.label}</span>
                 </button>
-              ))}
-            </nav>
-            <button type="button" onClick={requestSample} className="mt-6 flex min-h-11 w-full items-center gap-2 border-t border-white/25 pt-5 text-left text-sm leading-5 text-white/80 transition hover:text-white">
-              <Sparkles size={16} />
-              <span>Try a completed example</span>
+              );
+            })}
+          </nav>
+
+          <div className="mt-6 border-t border-[var(--border)] pt-6">
+            <button type="button" onClick={requestSample} className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3.5 text-left transition hover:border-[var(--border-strong)]">
+              <span className="meta block text-[var(--muted)]">Need a reference?</span>
+              <span className="mt-1.5 block text-[15px] leading-6 text-[var(--studio-blue)]">View a completed trace →</span>
             </button>
+            <button type="button" onClick={() => hasWriting ? setDialogKind('clear') : clearDraft()} className="mt-3 min-h-11 text-[15px] leading-6 text-[var(--muted)] underline decoration-[var(--border-strong)] underline-offset-4 transition hover:text-[var(--ink)]">Clear saved draft</button>
           </div>
         </aside>
 
-        <section className="min-w-0 xl:min-h-[790px]">
+        <section className="min-w-0">
           {reviewMode ? (
-            <div className="space-y-6"><div className="space-y-4"><h2 className="text-xl">Make this reflection citable</h2><p className="text-sm leading-6 text-[var(--muted)]">Optional context for your reader. Exports include the date from your device. A typed name is self-declared, not a verified signature.</p>{([['creator', 'Creator name'], ['workUrl', 'Work URL or reference'], ['workVersion', 'Work version (e.g. prototype 2)']] as const).map(([key, label]) => <Field key={key} htmlFor={key} label={label}><input id={key} className={`${fieldClass} h-[52px] rounded-full`} value={trace[key]} onChange={e => set(key, e.target.value)} /></Field>)}</div><ReviewPanel completed={completed} progress={progress} onEdit={goToStep} onCopy={copyDisclosure} onDownload={downloadDisclosure} /></div>
+            <ReviewPanel trace={trace} completed={completed} progress={progress} onEdit={goToStep} onCopy={copyDisclosure} onDownload={downloadDisclosure} onSet={set} />
           ) : (
-            <>
-              <div className="mb-8 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[13px] text-[var(--muted)]">Section {activeStep + 1} of 5</p>
-                  <h1 className="mt-1 text-[clamp(1.75rem,3vw,2.4rem)] leading-[1.05] tracking-[-0.035em]">{steps[activeStep].label}</h1>
+            <div key={activeStep} className="editor-enter">
+              <p className="meta text-[var(--muted)]">{`0${activeStep + 1} / ${step.eyebrow}`}</p>
+              <h1 className="mt-4 text-[clamp(2rem,3.2vw,2.5rem)] font-semibold leading-[1.2] tracking-[-0.02em]">{step.label}</h1>
+              <p className="mt-4 max-w-[62ch] text-base leading-6 text-[var(--muted)]">{step.blurb}</p>
+
+              {attemptedStep === activeStep && !completed[activeStep] && (
+                <p role="alert" className="mt-6 rounded-[12px] border border-[var(--error)] bg-[var(--error-wash)] px-4 py-3 text-[15px] leading-6 text-[var(--error)]">
+                  Complete the highlighted {step.fields.length === 1 ? 'answer' : 'answers'} before continuing.
+                </p>
+              )}
+
+              <div className="mt-10 space-y-10">
+                {activeStep === 0 && <>
+                  <Field htmlFor="project" label="What is the work called?" hint="Use the name your audience will recognize." error={fieldError('project')}>
+                    <input id="project" aria-invalid={fieldError('project')} className={inputClass} value={trace.project} onChange={(e) => set('project', e.target.value)} placeholder="e.g. Transit wayfinding prototype" />
+                  </Field>
+                  <Field htmlFor="discipline" label="Which discipline is this?" error={fieldError('discipline')}>
+                    <div className="relative">
+                      <select id="discipline" aria-invalid={fieldError('discipline')} className={`${inputClass} pr-11`} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}>
+                        <option value="" disabled>Select your discipline</option>
+                        {['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}
+                      </select>
+                      <ChevronDown size={18} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+                    </div>
+                  </Field>
+                  <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process. Creator, link, and version details are added during review." error={fieldError('intent')}>
+                    <textarea id="intent" aria-describedby="intent-example" aria-invalid={fieldError('intent')} className={areaClass} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" />
+                  </Field>
+                </>}
+                {activeStep === 1 && <Field htmlFor="aiUse" label="How did AI participate?" hint="Name the tool, what you asked it to do, and where it entered your process." error={fieldError('aiUse')}>
+                  <textarea id="aiUse" aria-describedby="aiUse-example" aria-invalid={fieldError('aiUse')} className={areaClass} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I used [tool] to…" />
+                </Field>}
+                {activeStep === 2 && <>
+                  <Field htmlFor="accepted" label="What did you accept or adapt?" hint="Explain why it improved the work." error={fieldError('accepted')}>
+                    <textarea id="accepted" aria-describedby="accepted-example" aria-invalid={fieldError('accepted')} className={areaClass} value={trace.accepted} onChange={(e) => set('accepted', e.target.value)} placeholder="I kept the suggestion to… because…" />
+                  </Field>
+                  <Field htmlFor="rejected" label="What did you reject?" hint="Rejection is evidence of judgment, not a failed interaction." error={fieldError('rejected')}>
+                    <textarea id="rejected" aria-describedby="rejected-example" aria-invalid={fieldError('rejected')} className={areaClass} value={trace.rejected} onChange={(e) => set('rejected', e.target.value)} placeholder="I chose not to… because…" />
+                  </Field>
+                </>}
+                {activeStep === 3 && <Field htmlFor="verified" label="What did you verify?" hint="Include sources, comparisons, or checks you performed yourself." error={fieldError('verified')}>
+                  <textarea id="verified" aria-describedby="verified-example" aria-invalid={fieldError('verified')} className={areaClass} value={trace.verified} onChange={(e) => set('verified', e.target.value)} placeholder="I checked… against…" />
+                </Field>}
+                {activeStep === 4 && <Field htmlFor="humanDecisions" label="Which decisions remained yours?" hint="Be concrete about interpretation, direction, and final choices." error={fieldError('humanDecisions')}>
+                  <textarea id="humanDecisions" aria-describedby="humanDecisions-example" aria-invalid={fieldError('humanDecisions')} className={areaClass} value={trace.humanDecisions} onChange={(e) => set('humanDecisions', e.target.value)} placeholder="I remained responsible for…" />
+                </Field>}
+              </div>
+
+              <div className="mt-12 border-t border-[var(--border)] pt-6">
+                <div className="flex items-center justify-between gap-4">
+                  <button type="button" disabled={activeStep === 0} onClick={() => goToStep(activeStep - 1)} className="btn btn-quiet disabled:invisible">← Back</button>
+                  <button type="button" onClick={continueFlow} className="btn btn-primary">{activeStep < steps.length - 1 ? 'Continue →' : 'Review record →'}</button>
                 </div>
-                <button type="button" onClick={() => hasWriting ? setDialogKind('clear') : clearDraft()} className="flex min-h-11 items-center gap-2 rounded-full px-3 text-sm text-[var(--muted)] transition hover:bg-[var(--gray-soft)] hover:text-[var(--ink)]">
-                  <RotateCcw size={15} />
-                  <span className="hidden sm:inline">Clear saved draft</span>
-                </button>
               </div>
-
-              {attemptedStep === activeStep && !completed[activeStep] && <p role="alert" className="mb-6 rounded-[16px] bg-[var(--error-wash)] px-4 py-3 text-sm leading-5 text-[var(--error)]">Complete the highlighted {steps[activeStep].fields.length === 1 ? 'answer' : 'answers'} before continuing.</p>}
-
-              {activeStep === 0 && <div className="space-y-9 xl:space-y-11">
-                <Field htmlFor="project" label="Project title" hint="Use the name your audience will recognize." error={fieldError('project')}><input id="project" aria-invalid={fieldError('project')} className={`${fieldClass} h-[52px] rounded-full`} value={trace.project} onChange={(e) => set('project', e.target.value)} placeholder="e.g. Transit wayfinding prototype" /></Field>
-                <Field htmlFor="discipline" label="Creative discipline" error={fieldError('discipline')}><div className="relative"><select id="discipline" aria-invalid={fieldError('discipline')} className={`${fieldClass} h-[52px] appearance-none rounded-full pr-12`} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}><option value="" disabled>Select your discipline</option>{['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}</select><img src="/figma-assets/caret-down.svg" alt="" width={18} height={18} className="pointer-events-none absolute right-5 top-1/2 size-[18px] -translate-y-1/2" /></div></Field>
-                <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process. Optional creator, link, and version details are added during review." error={fieldError('intent')}><textarea id="intent" aria-describedby="intent-example" aria-invalid={fieldError('intent')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
-              </div>}
-              {activeStep === 1 && <Field htmlFor="aiUse" label="How did AI participate?" hint="Name the tool, the request, and the stage of your process." error={fieldError('aiUse')}><textarea id="aiUse" aria-describedby="aiUse-example" aria-invalid={fieldError('aiUse')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I used [tool] to…" /></Field>}
-              {activeStep === 2 && <div className="space-y-9">
-                <Field htmlFor="accepted" label="What did you accept or adapt?" hint="Explain why it improved the work." error={fieldError('accepted')}><textarea id="accepted" aria-describedby="accepted-example" aria-invalid={fieldError('accepted')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.accepted} onChange={(e) => set('accepted', e.target.value)} placeholder="I kept the suggestion to… because…" /></Field>
-                <Field htmlFor="rejected" label="What did you reject?" hint="Rejection is evidence of judgment, not a failed interaction." error={fieldError('rejected')}><textarea id="rejected" aria-describedby="rejected-example" aria-invalid={fieldError('rejected')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.rejected} onChange={(e) => set('rejected', e.target.value)} placeholder="I chose not to… because…" /></Field>
-              </div>}
-              {activeStep === 3 && <Field htmlFor="verified" label="What did you verify?" hint="Include sources, comparisons, or checks you performed yourself." error={fieldError('verified')}><textarea id="verified" aria-describedby="verified-example" aria-invalid={fieldError('verified')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.verified} onChange={(e) => set('verified', e.target.value)} placeholder="I checked… against…" /></Field>}
-              {activeStep === 4 && <Field htmlFor="humanDecisions" label="Which decisions remained yours?" hint="Be concrete about interpretation, direction, and final choices." error={fieldError('humanDecisions')}><textarea id="humanDecisions" aria-describedby="humanDecisions-example" aria-invalid={fieldError('humanDecisions')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.humanDecisions} onChange={(e) => set('humanDecisions', e.target.value)} placeholder="I remained responsible for…" /></Field>}
-
-              <div className="mt-10 flex items-center justify-between border-t border-[var(--gray-light)] pt-6">
-                <button type="button" disabled={activeStep === 0} onClick={() => goToStep(activeStep - 1)} className="min-h-12 rounded-full px-4 text-base text-[var(--muted)] transition hover:bg-[var(--gray-soft)] hover:text-[var(--ink)] disabled:invisible">Back</button>
-                <button type="button" onClick={continueFlow} className="min-h-12 rounded-full bg-[var(--lime)] px-6 text-base text-[var(--blue)] transition hover:-translate-y-0.5 hover:bg-[var(--lime-bright)]">{activeStep < steps.length - 1 ? `Continue to ${steps[activeStep + 1].label.toLowerCase()}` : 'Review record'}</button>
-              </div>
-            </>
+            </div>
           )}
         </section>
 
-        <aside className="min-w-0 xl:self-start">
-          <RecordPreview trace={trace} completed={completed} activeStep={activeStep} reviewMode={reviewMode} progress={progress} onCopy={copyDisclosure} onDownload={downloadDisclosure} />
-          <p className="mt-4 flex gap-2 text-[13px] leading-5 text-[var(--muted)]">
-            <img src="/figma-assets/privacy-shield.svg" alt="" width={16} height={16} className="mt-0.5 size-4 shrink-0" />
-            <span>Your draft is saved in this browser and never uploaded. Avoid including confidential client or school work.</span>
-          </p>
+        <aside className="trace-col min-w-0 lg:sticky lg:top-8">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <p className="meta text-[var(--muted)]">Live trace</p>
+            <div className="flex items-center gap-2">
+              <span className="hidden text-[13px] leading-5 text-[var(--muted)] sm:inline">Updates as you document</span>
+              <IconButton label="Copy record" onClick={copyDisclosure} disabled={progress === 0} icon={<Clipboard size={15} />} />
+              <IconButton label="Download record as Markdown" onClick={downloadDisclosure} disabled={progress === 0} icon={<Download size={15} />} />
+            </div>
+          </div>
+          <TraceDocument trace={trace} completed={completed} activeStep={activeStep} reviewMode={reviewMode} progress={progress} />
+          <p className="mt-4 text-[13px] leading-5 text-[var(--muted)]">Saved in this browser and never uploaded. Avoid confidential client or school work.</p>
         </aside>
       </div>
 
-      <footer className="mx-auto max-w-[1728px] px-5 pb-8 sm:px-8 xl:px-[50px]"><details className="max-w-3xl text-sm leading-6 text-[var(--muted)]"><summary className="cursor-pointer py-3">About Studio Trace and using Claude</summary><p>Created by Sylvia Zamora to help creatives reflect on AI collaboration. Works with Claude and other tools; no AI account or API key is required. The example is fictional. The app does not call Claude or generate your answers.</p><p className="mt-3">Studio Trace deliberately prevents AI from completing a person’s reflection. Claude can act as an interviewer—asking questions that help the creator remember and articulate decisions—but only the creator can author the record.</p><p className="mt-3">To use Claude as a reflection partner, ask: “Interview me about my creative process, one question at a time. Ask what I accepted, rejected, and checked. Do not invent experiences or write my answers.” Write your own account here.</p><p className="mt-3">Built with React, TypeScript, Vite, and Tailwind CSS; deployed on Netlify. Independent project, not affiliated with or endorsed by Anthropic.</p></details></footer>
-      <div aria-live="polite" aria-atomic="true" className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-5 py-3 text-sm text-white shadow-lg transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}>{toast}</div>
+      <footer className="studio-shell pb-12">
+        <details className="max-w-3xl text-[15px] leading-6 text-[var(--muted)]">
+          <summary className="cursor-pointer py-3">About Studio Trace and using Claude</summary>
+          <p>Created by Sylvia Zamora to help creatives reflect on AI collaboration. Works with Claude and other tools; no AI account or API key is required. The example is fictional. The app does not call Claude or generate your answers.</p>
+          <p className="mt-3">Studio Trace deliberately prevents AI from completing a person’s reflection. Claude can act as an interviewer, asking questions that help the creator remember and articulate decisions, but only the creator can author the record.</p>
+          <p className="mt-3">To use Claude as a reflection partner, ask: “Interview me about my creative process, one question at a time. Ask what I accepted, rejected, and checked. Do not invent experiences or write my answers.” Write your own account here.</p>
+          <p className="mt-3">Built with React, TypeScript, Vite, and Tailwind CSS; deployed on Netlify. Independent project, not affiliated with or endorsed by Anthropic.</p>
+        </details>
+      </footer>
+
+      <div aria-live="polite" aria-atomic="true" className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[12px] bg-[var(--ink)] px-5 py-3 text-[15px] text-white transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} style={{ boxShadow: 'var(--shadow-float)' }}>{toast}</div>
 
       <AlertDialog open={dialogKind !== null} onOpenChange={(open) => { if (!open) setDialogKind(null); }}>
-        <AlertDialogContent className="max-w-[420px] gap-0 rounded-[28px] border border-[var(--gray)] bg-white p-0 text-[var(--ink)] shadow-2xl">
-          <AlertDialogHeader className="items-start gap-2 p-7 text-left">
-            <AlertDialogTitle className="text-2xl font-normal tracking-[-0.03em]">{dialogKind === 'sample' ? 'Replace your current draft?' : 'Clear your saved draft?'}</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm leading-6 text-[var(--muted)]">{dialogKind === 'sample' ? 'The completed example will replace what you have written on this device.' : 'Everything you have written will be removed from this browser.'}</AlertDialogDescription>
+        <AlertDialogContent className="panel panel-float max-w-[440px] gap-0 p-0 text-[var(--ink)]">
+          <AlertDialogHeader className="items-start gap-2 p-6 text-left">
+            <AlertDialogTitle className="text-[22px] font-semibold leading-7 tracking-[-0.01em]">{dialogKind === 'sample' ? 'Replace your current draft?' : 'Clear your saved draft?'}</AlertDialogTitle>
+            <AlertDialogDescription className="text-[15px] leading-6 text-[var(--muted)]">{dialogKind === 'sample' ? 'The completed example will replace what you have written on this device.' : 'Everything you have written will be removed from this browser.'}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="m-0 flex-row justify-end gap-2 rounded-b-[28px] border-t border-[var(--gray-light)] bg-white p-5">
-            <AlertDialogCancel className="min-h-11 rounded-full border border-[var(--gray)] bg-white px-5 text-[var(--ink)] hover:bg-[var(--gray-soft)]">Keep my draft</AlertDialogCancel>
-            <AlertDialogAction onClick={dialogKind === 'sample' ? loadSample : clearDraft} className="min-h-11 rounded-full bg-[var(--blue)] px-5 text-white hover:bg-[var(--blue-dark)]">{dialogKind === 'sample' ? 'Load example' : 'Clear draft'}</AlertDialogAction>
+          <AlertDialogFooter className="m-0 flex-row justify-end gap-2 border-t border-[var(--border)] p-4">
+            <AlertDialogCancel className="btn btn-quiet">Keep my draft</AlertDialogCancel>
+            <AlertDialogAction onClick={dialogKind === 'sample' ? loadSample : clearDraft} className="btn btn-primary">{dialogKind === 'sample' ? 'Load example' : 'Clear draft'}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -308,63 +356,120 @@ export default function Home() {
 }
 
 function Field({ htmlFor, label, hint, error, children }: { htmlFor: string; label: string; hint?: string; error?: boolean; children: React.ReactNode }) {
-  return <div><label htmlFor={htmlFor} className="block text-xl leading-6 text-[var(--blue)]">{label}</label>{hint ? <p className="mb-3 mt-1.5 max-w-[62ch] text-sm leading-5 text-[var(--muted)]">{hint}</p> : <span className="block h-3" />}{children}{microExamples[htmlFor] && <p id={`${htmlFor}-example`} className="mt-3 text-sm leading-6 text-[var(--muted)]"><span className="font-medium">Example: </span>{microExamples[htmlFor]}</p>}{error && <p className="mt-2 text-sm leading-5 text-[var(--error)]">Add an answer to continue.</p>}</div>;
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="block text-[clamp(1.25rem,2vw,1.75rem)] font-semibold leading-[1.28] tracking-[-0.01em]">{label}</label>
+      {hint && <p className="mt-2.5 max-w-[62ch] text-base leading-6 text-[var(--muted)]">{hint}</p>}
+      <div className="mt-5">{children}</div>
+      {microExamples[htmlFor] && (
+        <details className="group mt-3">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-[15px] leading-6 text-[var(--studio-blue)]">
+            <Plus size={15} className="transition group-open:rotate-45" />
+            See a strong example
+          </summary>
+          <p id={`${htmlFor}-example`} className="mt-1 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3.5 text-[15px] leading-6 text-[var(--muted)]">{microExamples[htmlFor]}</p>
+        </details>
+      )}
+      {error && <p className="mt-2 text-[15px] leading-6 text-[var(--error)]">Add an answer to continue.</p>}
+    </div>
+  );
 }
 
-function ReviewPanel({ completed, progress, onEdit, onCopy, onDownload }: { completed: boolean[]; progress: number; onEdit: (index: number) => void; onCopy: () => void; onDownload: () => void }) {
+function ReviewPanel({ trace, completed, progress, onEdit, onCopy, onDownload, onSet }: { trace: Trace; completed: boolean[]; progress: number; onEdit: (index: number) => void; onCopy: () => void; onDownload: () => void; onSet: (field: keyof Trace, value: string) => void }) {
   const missing = completed.map((done, index) => ({ done, index })).filter(({ done }) => !done);
-  return <div>
-    <p className="text-[13px] text-[var(--muted)]">Review</p>
-    <h1 className="mt-1 text-[clamp(2.2rem,4vw,3.5rem)] leading-[0.98] tracking-[-0.045em]">Your creative process, made visible.</h1>
-    <p className="mt-5 max-w-[58ch] text-base leading-7 text-[var(--muted)]">Read the complete record on the right. Tighten anything that does not clearly show your intent, judgment, verification, or authorship.</p>
+  return (
+    <div className="editor-enter">
+      <p className="meta text-[var(--muted)]">Review</p>
+      <h1 className="mt-4 text-[clamp(2.25rem,4vw,3.5rem)] font-medium leading-[1.12] tracking-[-0.025em]">Your creative process, made visible.</h1>
+      <p className="mt-5 max-w-[62ch] text-base leading-6 text-[var(--muted)]">Read the complete record alongside. Tighten anything that does not clearly show your intent, judgment, verification, or authorship.</p>
 
-    <div className={`mt-9 rounded-[24px] border p-6 ${missing.length ? 'border-[var(--gray)]' : 'border-[var(--lime)] bg-[var(--lime-wash)]'}`}>
-      {missing.length ? <>
-        <h2 className="text-xl">{missing.length} {missing.length === 1 ? 'section needs' : 'sections need'} attention</h2>
-        <div className="mt-4 flex flex-wrap gap-2">{missing.map(({ index }) => <button type="button" key={steps[index].label} onClick={() => onEdit(index)} className="min-h-11 rounded-full border border-[var(--gray)] px-4 text-sm text-[var(--blue)] transition hover:border-[var(--blue)]">Edit {steps[index].label.toLowerCase()}</button>)}</div>
-      </> : <div className="flex items-start gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--lime)] text-[var(--blue)]"><Check size={17} /></span><div><h2 className="text-xl">All five sections are complete</h2><p className="mt-1 text-sm leading-5 text-[var(--muted)]">Your reflection is ready to copy or download. Completeness does not verify its claims.</p></div></div>}
-    </div>
+      <div className={`panel mt-9 p-6 ${missing.length ? '' : 'border-[var(--trace-green)] bg-[var(--green-soft)]'}`}>
+        {missing.length ? (
+          <>
+            <h2 className="text-[20px] font-semibold leading-7">{missing.length} {missing.length === 1 ? 'section needs' : 'sections need'} attention</h2>
+            <div className="mt-4 flex flex-wrap gap-2">{missing.map(({ index }) => <button type="button" key={steps[index].label} onClick={() => onEdit(index)} className="btn btn-quiet text-[15px]">Edit {steps[index].label.toLowerCase()}</button>)}</div>
+          </>
+        ) : (
+          <div className="flex items-start gap-3">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--trace-green)] text-[var(--ink)]"><Check size={16} strokeWidth={2.5} /></span>
+            <div>
+              <h2 className="text-[20px] font-semibold leading-7">All five sections are complete</h2>
+              <p className="mt-1 text-[15px] leading-6 text-[var(--muted)]">Your reflection is ready to copy or download. Completeness does not verify its claims.</p>
+            </div>
+          </div>
+        )}
+      </div>
 
-    <div className="mt-8 flex flex-wrap items-center gap-3">
-      <button type="button" onClick={onCopy} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full bg-[var(--blue)] px-6 text-base text-white transition hover:bg-[var(--blue-dark)] disabled:cursor-not-allowed disabled:opacity-40"><Clipboard size={17} />Copy record</button>
-      <button type="button" onClick={onDownload} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full border border-[var(--gray)] px-6 text-base text-[var(--ink)] transition hover:border-[var(--blue)] hover:text-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-40"><Download size={17} />Download Markdown</button>
+      <div className="mt-10">
+        <h2 className="text-[20px] font-semibold leading-7">Make this reflection citable</h2>
+        <p className="mt-2 max-w-[62ch] text-[15px] leading-6 text-[var(--muted)]">Optional context for your reader. Exports include the date from your device. A typed name is self-declared, not a verified signature.</p>
+        <div className="mt-5 space-y-4">
+          {([['creator', 'Creator name'], ['workUrl', 'Work URL or reference'], ['workVersion', 'Work version (e.g. prototype 2)']] as const).map(([key, label]) => (
+            <div key={key}>
+              <label htmlFor={key} className="meta block text-[var(--muted)]">{label}</label>
+              <input id={key} className={`${inputClass} mt-2`} value={trace[key]} onChange={(e) => onSet(key, e.target.value)} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-6">
+        <button type="button" onClick={onCopy} disabled={progress === 0} className="btn btn-primary"><Clipboard size={16} />Copy record</button>
+        <button type="button" onClick={onDownload} disabled={progress === 0} className="btn btn-quiet"><Download size={16} />Download Markdown</button>
+        <button type="button" onClick={() => onEdit(0)} className="min-h-11 px-2 text-[15px] leading-6 text-[var(--muted)] underline decoration-[var(--border-strong)] underline-offset-4 transition hover:text-[var(--ink)]">Return to editing</button>
+      </div>
     </div>
-    <button type="button" onClick={() => onEdit(0)} className="mt-8 min-h-11 text-sm text-[var(--muted)] underline decoration-[var(--gray)] underline-offset-4 hover:text-[var(--ink)]">Return to editing</button>
-  </div>;
+  );
 }
 
-function RecordPreview({ trace, completed, activeStep, reviewMode, progress, onCopy, onDownload }: { trace: Trace; completed: boolean[]; activeStep: number; reviewMode: boolean; progress: number; onCopy: () => void; onDownload: () => void }) {
-  return <article className="overflow-hidden rounded-[36px] border border-[var(--gray)] bg-white xl:rounded-[44px]">
-    <header className="flex min-h-[78px] items-center justify-between gap-4 border-b border-[var(--gray-light)] px-6 py-5">
-      <div><p className="text-xl leading-6">{reviewMode ? 'Your process record' : 'Live preview'}</p><p className="mt-1 text-[13px] text-[var(--muted)]">{reviewMode ? 'Complete document' : 'Focused on this section'}</p></div>
-      <div className="flex gap-2"><IconButton label="Copy record" onClick={onCopy} disabled={progress === 0} icon={<Clipboard size={15} />} /><IconButton label="Download record as Markdown" onClick={onDownload} disabled={progress === 0} icon={<Download size={15} />} /></div>
-    </header>
-    <div className="px-6 py-8">
-      <div className="mb-8">
-        <p className="mb-2 text-sm text-[var(--blue)]">Creative process reflection</p><p className="mb-3 text-sm leading-5 text-[var(--muted)]">Self-reported. Studio Trace does not verify identity, sources, or authorship.</p>{trace.example === 'yes' && <p className="mb-3 text-sm font-medium text-[var(--blue)]">Illustrative example, not an actual project record. Clear it to start your own.</p>}
-        <h2 className="text-[clamp(1.75rem,3vw,2.3rem)] leading-[1.02] tracking-[-0.04em]">{trace.project || 'Untitled creative work'}</h2>
-        <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline || 'Discipline not selected'}</span><dl className="mt-4 space-y-2 break-words text-sm text-[var(--muted)]"><div><dt className="inline font-medium">Creator: </dt><dd className="inline">{trace.creator || (reviewMode ? 'Not recorded' : 'Optional—add during review')}</dd></div><div><dt className="inline font-medium">Work reference: </dt><dd className="inline">{trace.workUrl || (reviewMode ? 'Not recorded' : 'Optional—add during review')}</dd></div><div><dt className="inline font-medium">Work version: </dt><dd className="inline">{trace.workVersion || (reviewMode ? 'Not recorded' : 'Optional—add during review')}</dd></div></dl>
-      </div>
-      <div className="border-t border-[var(--ink)]">
-        {previewSections.map((section, index) => {
-          const visible = reviewMode || completed[index] || activeStep === index;
-          if (!visible) return null;
-          return <RecordSection key={section.title} number={section.number} title={section.title} text={section.value(trace)} prompt={section.prompt} current={!reviewMode && activeStep === index} />;
-        })}
-      </div>
-      {!reviewMode && progress === 0 && activeStep !== 0 && <p className="py-6 text-sm leading-6 text-[var(--muted)]">Completed sections will collect here as you move through the trace.</p>}
-      <footer className="mt-8 flex items-center justify-between gap-4 border-t border-[var(--gray-light)] pt-5 text-[13px] text-[var(--muted)]"><span>Studio Trace · Sylvia Zamora</span><span className="rounded-full bg-[var(--lime)] px-3 py-1 text-[var(--blue)]">{progress}/5 documented</span></footer>
-    </div>
-  </article>;
-}
+function TraceDocument({ trace, completed, activeStep, reviewMode, progress }: { trace: Trace; completed: boolean[]; activeStep: number; reviewMode: boolean; progress: number }) {
+  return (
+    <article className="panel panel-float overflow-hidden">
+      <div className="p-7">
+        <div className="flex items-center justify-between gap-4">
+          <span className="meta text-[var(--muted)]">Studio Trace</span>
+          <span className="meta text-[var(--muted)]">{reviewMode ? '05 / 05' : `0${activeStep + 1} / 05`}</span>
+        </div>
 
-function RecordSection({ number, title, text, prompt, current }: { number: string; title: string; text: string; prompt: string; current: boolean }) {
-  return <section className={`record-section grid grid-cols-[34px_1fr] gap-x-3 gap-y-2 border-b py-5 transition ${current ? 'border-[var(--blue)]' : 'border-[var(--gray-light)]'}`}>
-    <span className="text-[13px] text-[var(--blue)]">{number}</span>
-    <div><h3 className="text-sm leading-5 text-[var(--blue)]">{title}</h3><p className={`mt-2 whitespace-pre-line text-sm leading-6 ${text ? 'text-[var(--ink)]' : 'text-[var(--muted)]'}`}>{text || prompt}</p></div>
-  </section>;
+        <p className="mt-6 text-[15px] leading-6 text-[var(--muted)]">Creative process trace</p>
+        <h2 className="mt-2 text-[clamp(1.75rem,2.4vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.02em]">{trace.project || 'Untitled creative work'}</h2>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="pill meta">{trace.discipline || 'Discipline not selected'}</span>
+          {trace.example === 'yes' && <span className="pill meta pill-blue">Illustrative example</span>}
+        </div>
+
+        <dl className="mt-5 space-y-1.5">
+          <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Creator</dt><dd className="meta break-words text-[var(--ink)]">{trace.creator || 'Not recorded'}</dd></div>
+          <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Status</dt><dd className="meta text-[var(--ink)]">Self-reported</dd></div>
+          {trace.workUrl && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Work</dt><dd className="meta break-words text-[var(--ink)]">{trace.workUrl}</dd></div>}
+          {trace.workVersion && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Version</dt><dd className="meta text-[var(--ink)]">{trace.workVersion}</dd></div>}
+        </dl>
+
+        <div className="mt-6 border-t border-[var(--border)]">
+          {previewSections.map((section, index) => {
+            const visible = reviewMode || completed[index] || activeStep === index;
+            if (!visible) return null;
+            const text = section.value(trace);
+            return (
+              <section key={section.title} className="grid grid-cols-[30px_1fr] gap-x-2 border-b border-[var(--border)] py-5">
+                <span className="meta text-[var(--muted)]">{section.number}</span>
+                <div>
+                  <h3 className="meta text-[var(--muted)]">{section.title}</h3>
+                  <p className={`trace-value mt-2 whitespace-pre-line text-[15px] leading-6 ${text ? 'text-[var(--ink)]' : 'text-[var(--muted)]'}`}>{text || section.prompt}</p>
+                </div>
+              </section>
+            );
+          })}
+        </div>
+
+        <div className="mt-6">
+          <span className={`pill meta ${progress === 5 ? 'pill-green' : ''}`}>{progress} / 5 traced</span>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 function IconButton({ label, icon, onClick, disabled }: { label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid size-10 place-items-center rounded-full border border-[var(--gray-light)] bg-white text-[var(--ink)] transition hover:border-[var(--blue)] hover:text-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-35">{icon}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid size-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] transition hover:border-[var(--studio-blue)] hover:text-[var(--studio-blue)] disabled:cursor-not-allowed disabled:opacity-35">{icon}</button>;
 }
