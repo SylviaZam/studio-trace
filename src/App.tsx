@@ -132,7 +132,7 @@ export default function Home() {
     if (progress === 0) return;
     try {
       await navigator.clipboard.writeText(renderRecord(trace, new Date().toISOString()));
-      announce('Passport copied');
+      announce('Creative process record copied');
     } catch {
       announce('Copy failed. Try downloading instead.');
     }
@@ -145,10 +145,10 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = 'creative-process-passport.md';
+    anchor.download = 'creative-process-record.md';
     anchor.click();
     URL.revokeObjectURL(url);
-    announce('Passport downloaded');
+    announce('Creative process record downloaded');
   };
 
   const goToStep = (index: number) => {
@@ -223,7 +223,7 @@ export default function Home() {
               <span><span className="block text-[13px] text-white/70">Step {activeStep + 1} of 5</span><span className="mt-0.5 block text-base">{steps[activeStep].label}</span></span>
               <ChevronDown size={19} className={`transition ${mobileStepsOpen ? 'rotate-180' : ''}`} />
             </button>
-            <nav aria-label="Passport sections" className={`${mobileStepsOpen ? 'mt-5 flex' : 'hidden'} flex-col gap-4 md:flex md:flex-row md:overflow-x-auto xl:block xl:space-y-5 xl:overflow-visible`}>
+            <nav aria-label="Creative process record sections" className={`${mobileStepsOpen ? 'mt-5 flex' : 'hidden'} flex-col gap-4 md:flex md:flex-row md:overflow-x-auto xl:block xl:space-y-5 xl:overflow-visible`}>
               {steps.map((step, index) => (
                 <button key={step.label} type="button" onClick={() => goToStep(index)} className={`group flex min-h-11 shrink-0 items-center gap-3 rounded-2xl px-1 py-1 text-left text-sm leading-5 transition focus-visible:outline-white xl:w-full ${!reviewMode && activeStep === index ? 'font-medium' : 'text-white/78 hover:text-white'}`}>
                   <span className={`grid size-[34px] shrink-0 place-items-center rounded-[10px] border text-[13px] transition ${completed[index] ? 'border-[var(--lime)] bg-[var(--lime)] text-[var(--blue)]' : !reviewMode && activeStep === index ? 'border-white bg-white text-[var(--blue)]' : 'border-white/85 bg-transparent text-white'}`}>{completed[index] ? <Check size={16} strokeWidth={2.5} /> : index + 1}</span>
@@ -259,7 +259,7 @@ export default function Home() {
               {activeStep === 0 && <div className="space-y-9 xl:space-y-11">
                 <Field htmlFor="project" label="Project title" hint="Use the name your audience will recognize." error={fieldError('project')}><input id="project" aria-invalid={fieldError('project')} className={`${fieldClass} h-[52px] rounded-full`} value={trace.project} onChange={(e) => set('project', e.target.value)} placeholder="e.g. Transit wayfinding prototype" /></Field>
                 <Field htmlFor="discipline" label="Creative discipline" error={fieldError('discipline')}><div className="relative"><select id="discipline" aria-invalid={fieldError('discipline')} className={`${fieldClass} h-[52px] appearance-none rounded-full pr-12`} value={trace.discipline} onChange={(e) => set('discipline', e.target.value)}><option value="" disabled>Select your discipline</option>{['Interaction design', 'Graphic design', 'Fashion', 'Illustration', 'Film', 'Photography', 'Animation', 'Other'].map((item) => <option key={item}>{item}</option>)}</select><img src="/figma-assets/caret-down.svg" alt="" width={18} height={18} className="pointer-events-none absolute right-5 top-1/2 size-[18px] -translate-y-1/2" /></div></Field>
-                <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process." error={fieldError('intent')}><textarea id="intent" aria-describedby="intent-example" aria-invalid={fieldError('intent')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
+                <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process. Optional creator, link, and version details are added during review." error={fieldError('intent')}><textarea id="intent" aria-describedby="intent-example" aria-invalid={fieldError('intent')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" /></Field>
               </div>}
               {activeStep === 1 && <Field htmlFor="aiUse" label="How did AI participate?" hint="Name the tool, the request, and the stage of your process." error={fieldError('aiUse')}><textarea id="aiUse" aria-describedby="aiUse-example" aria-invalid={fieldError('aiUse')} className={`${fieldClass} min-h-[144px] resize-y rounded-[24px] py-4`} value={trace.aiUse} onChange={(e) => set('aiUse', e.target.value)} placeholder="I used [tool] to…" /></Field>}
               {activeStep === 2 && <div className="space-y-9">
@@ -271,14 +271,14 @@ export default function Home() {
 
               <div className="mt-10 flex items-center justify-between border-t border-[var(--gray-light)] pt-6">
                 <button type="button" disabled={activeStep === 0} onClick={() => goToStep(activeStep - 1)} className="min-h-12 rounded-full px-4 text-base text-[var(--muted)] transition hover:bg-[var(--gray-soft)] hover:text-[var(--ink)] disabled:invisible">Back</button>
-                <button type="button" onClick={continueFlow} className="min-h-12 rounded-full bg-[var(--lime)] px-6 text-base text-[var(--blue)] transition hover:-translate-y-0.5 hover:bg-[var(--lime-bright)]">{activeStep < steps.length - 1 ? `Continue to ${steps[activeStep + 1].label.toLowerCase()}` : 'Review passport'}</button>
+                <button type="button" onClick={continueFlow} className="min-h-12 rounded-full bg-[var(--lime)] px-6 text-base text-[var(--blue)] transition hover:-translate-y-0.5 hover:bg-[var(--lime-bright)]">{activeStep < steps.length - 1 ? `Continue to ${steps[activeStep + 1].label.toLowerCase()}` : 'Review record'}</button>
               </div>
             </>
           )}
         </section>
 
         <aside className="min-w-0 xl:self-start">
-          <Passport trace={trace} completed={completed} activeStep={activeStep} reviewMode={reviewMode} progress={progress} onCopy={copyDisclosure} onDownload={downloadDisclosure} />
+          <RecordPreview trace={trace} completed={completed} activeStep={activeStep} reviewMode={reviewMode} progress={progress} onCopy={copyDisclosure} onDownload={downloadDisclosure} />
           <p className="mt-4 flex gap-2 text-[13px] leading-5 text-[var(--muted)]">
             <img src="/figma-assets/privacy-shield.svg" alt="" width={16} height={16} className="mt-0.5 size-4 shrink-0" />
             <span>Your draft is saved in this browser and never uploaded. Avoid including confidential client or school work.</span>
@@ -286,7 +286,7 @@ export default function Home() {
         </aside>
       </div>
 
-      <footer className="mx-auto max-w-[1728px] px-5 pb-8 sm:px-8 xl:px-[50px]"><details className="max-w-3xl text-sm leading-6 text-[var(--muted)]"><summary className="cursor-pointer py-3">About Studio Trace and using Claude</summary><p>Created by Sylvia Zamora to help creatives reflect on AI collaboration. Works with Claude and other tools; no AI account or API key is required. The example is fictional. The app does not call Claude or generate your answers.</p><p className="mt-3">To use Claude as a reflection partner, ask: “Interview me about my creative process, one question at a time. Ask what I accepted, rejected, and checked. Do not invent experiences or write my answers.” Write your own account here.</p><p className="mt-3">Built with React and Vinext using OpenAI Sites tooling; published through Sites. Independent project, not affiliated with or endorsed by Anthropic or OpenAI.</p></details></footer>
+      <footer className="mx-auto max-w-[1728px] px-5 pb-8 sm:px-8 xl:px-[50px]"><details className="max-w-3xl text-sm leading-6 text-[var(--muted)]"><summary className="cursor-pointer py-3">About Studio Trace and using Claude</summary><p>Created by Sylvia Zamora to help creatives reflect on AI collaboration. Works with Claude and other tools; no AI account or API key is required. The example is fictional. The app does not call Claude or generate your answers.</p><p className="mt-3">Studio Trace deliberately prevents AI from completing a person’s reflection. Claude can act as an interviewer—asking questions that help the creator remember and articulate decisions—but only the creator can author the record.</p><p className="mt-3">To use Claude as a reflection partner, ask: “Interview me about my creative process, one question at a time. Ask what I accepted, rejected, and checked. Do not invent experiences or write my answers.” Write your own account here.</p><p className="mt-3">Built with React, TypeScript, Vite, and Tailwind CSS; deployed on Netlify. Independent project, not affiliated with or endorsed by Anthropic.</p></details></footer>
       <div aria-live="polite" aria-atomic="true" className={`fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full bg-[var(--ink)] px-5 py-3 text-sm text-white shadow-lg transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}>{toast}</div>
 
       <AlertDialog open={dialogKind !== null} onOpenChange={(open) => { if (!open) setDialogKind(null); }}>
@@ -314,7 +314,7 @@ function ReviewPanel({ completed, progress, onEdit, onCopy, onDownload }: { comp
   return <div>
     <p className="text-[13px] text-[var(--muted)]">Review</p>
     <h1 className="mt-1 text-[clamp(2.2rem,4vw,3.5rem)] leading-[0.98] tracking-[-0.045em]">Your creative process, made visible.</h1>
-    <p className="mt-5 max-w-[58ch] text-base leading-7 text-[var(--muted)]">Read the complete passport on the right. Tighten anything that does not clearly show your intent, judgment, verification, or authorship.</p>
+    <p className="mt-5 max-w-[58ch] text-base leading-7 text-[var(--muted)]">Read the complete record on the right. Tighten anything that does not clearly show your intent, judgment, verification, or authorship.</p>
 
     <div className={`mt-9 rounded-[24px] border p-6 ${missing.length ? 'border-[var(--gray)]' : 'border-[var(--lime)] bg-[var(--lime-wash)]'}`}>
       {missing.length ? <>
@@ -324,30 +324,30 @@ function ReviewPanel({ completed, progress, onEdit, onCopy, onDownload }: { comp
     </div>
 
     <div className="mt-8 flex flex-wrap items-center gap-3">
-      <button type="button" onClick={onCopy} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full bg-[var(--blue)] px-6 text-base text-white transition hover:bg-[var(--blue-dark)] disabled:cursor-not-allowed disabled:opacity-40"><Clipboard size={17} />Copy passport</button>
+      <button type="button" onClick={onCopy} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full bg-[var(--blue)] px-6 text-base text-white transition hover:bg-[var(--blue-dark)] disabled:cursor-not-allowed disabled:opacity-40"><Clipboard size={17} />Copy record</button>
       <button type="button" onClick={onDownload} disabled={progress === 0} className="flex min-h-12 items-center gap-2 rounded-full border border-[var(--gray)] px-6 text-base text-[var(--ink)] transition hover:border-[var(--blue)] hover:text-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-40"><Download size={17} />Download Markdown</button>
     </div>
     <button type="button" onClick={() => onEdit(0)} className="mt-8 min-h-11 text-sm text-[var(--muted)] underline decoration-[var(--gray)] underline-offset-4 hover:text-[var(--ink)]">Return to editing</button>
   </div>;
 }
 
-function Passport({ trace, completed, activeStep, reviewMode, progress, onCopy, onDownload }: { trace: Trace; completed: boolean[]; activeStep: number; reviewMode: boolean; progress: number; onCopy: () => void; onDownload: () => void }) {
+function RecordPreview({ trace, completed, activeStep, reviewMode, progress, onCopy, onDownload }: { trace: Trace; completed: boolean[]; activeStep: number; reviewMode: boolean; progress: number; onCopy: () => void; onDownload: () => void }) {
   return <article className="overflow-hidden rounded-[36px] border border-[var(--gray)] bg-white xl:rounded-[44px]">
     <header className="flex min-h-[78px] items-center justify-between gap-4 border-b border-[var(--gray-light)] px-6 py-5">
-      <div><p className="text-xl leading-6">{reviewMode ? 'Your passport' : 'Live preview'}</p><p className="mt-1 text-[13px] text-[var(--muted)]">{reviewMode ? 'Complete document' : 'Focused on this section'}</p></div>
-      <div className="flex gap-2"><IconButton label="Copy passport" onClick={onCopy} disabled={progress === 0} icon={<Clipboard size={15} />} /><IconButton label="Download passport as Markdown" onClick={onDownload} disabled={progress === 0} icon={<Download size={15} />} /></div>
+      <div><p className="text-xl leading-6">{reviewMode ? 'Your process record' : 'Live preview'}</p><p className="mt-1 text-[13px] text-[var(--muted)]">{reviewMode ? 'Complete document' : 'Focused on this section'}</p></div>
+      <div className="flex gap-2"><IconButton label="Copy record" onClick={onCopy} disabled={progress === 0} icon={<Clipboard size={15} />} /><IconButton label="Download record as Markdown" onClick={onDownload} disabled={progress === 0} icon={<Download size={15} />} /></div>
     </header>
     <div className="px-6 py-8">
       <div className="mb-8">
         <p className="mb-2 text-sm text-[var(--blue)]">Creative process reflection</p><p className="mb-3 text-sm leading-5 text-[var(--muted)]">Self-reported. Studio Trace does not verify identity, sources, or authorship.</p>{trace.example === 'yes' && <p className="mb-3 text-sm font-medium text-[var(--blue)]">Illustrative example, not an actual project record. Clear it to start your own.</p>}
         <h2 className="text-[clamp(1.75rem,3vw,2.3rem)] leading-[1.02] tracking-[-0.04em]">{trace.project || 'Untitled creative work'}</h2>
-        <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline || 'Discipline not selected'}</span><dl className="mt-4 space-y-2 break-words text-sm text-[var(--muted)]"><div><dt className="inline font-medium">Creator: </dt><dd className="inline">{trace.creator || 'Not recorded'}</dd></div><div><dt className="inline font-medium">Work reference: </dt><dd className="inline">{trace.workUrl || 'Not recorded'}</dd></div><div><dt className="inline font-medium">Work version: </dt><dd className="inline">{trace.workVersion || 'Not recorded'}</dd></div></dl>
+        <span className="mt-4 inline-block rounded-full border border-[var(--gray)] px-3 py-1.5 text-[13px] text-[var(--muted)]">{trace.discipline || 'Discipline not selected'}</span><dl className="mt-4 space-y-2 break-words text-sm text-[var(--muted)]"><div><dt className="inline font-medium">Creator: </dt><dd className="inline">{trace.creator || (reviewMode ? 'Not recorded' : 'Optional—add during review')}</dd></div><div><dt className="inline font-medium">Work reference: </dt><dd className="inline">{trace.workUrl || (reviewMode ? 'Not recorded' : 'Optional—add during review')}</dd></div><div><dt className="inline font-medium">Work version: </dt><dd className="inline">{trace.workVersion || (reviewMode ? 'Not recorded' : 'Optional—add during review')}</dd></div></dl>
       </div>
       <div className="border-t border-[var(--ink)]">
         {previewSections.map((section, index) => {
           const visible = reviewMode || completed[index] || activeStep === index;
           if (!visible) return null;
-          return <PassportSection key={section.title} number={section.number} title={section.title} text={section.value(trace)} prompt={section.prompt} current={!reviewMode && activeStep === index} />;
+          return <RecordSection key={section.title} number={section.number} title={section.title} text={section.value(trace)} prompt={section.prompt} current={!reviewMode && activeStep === index} />;
         })}
       </div>
       {!reviewMode && progress === 0 && activeStep !== 0 && <p className="py-6 text-sm leading-6 text-[var(--muted)]">Completed sections will collect here as you move through the trace.</p>}
@@ -356,8 +356,8 @@ function Passport({ trace, completed, activeStep, reviewMode, progress, onCopy, 
   </article>;
 }
 
-function PassportSection({ number, title, text, prompt, current }: { number: string; title: string; text: string; prompt: string; current: boolean }) {
-  return <section className={`passport-section grid grid-cols-[34px_1fr] gap-x-3 gap-y-2 border-b py-5 transition ${current ? 'border-[var(--blue)]' : 'border-[var(--gray-light)]'}`}>
+function RecordSection({ number, title, text, prompt, current }: { number: string; title: string; text: string; prompt: string; current: boolean }) {
+  return <section className={`record-section grid grid-cols-[34px_1fr] gap-x-3 gap-y-2 border-b py-5 transition ${current ? 'border-[var(--blue)]' : 'border-[var(--gray-light)]'}`}>
     <span className="text-[13px] text-[var(--blue)]">{number}</span>
     <div><h3 className="text-sm leading-5 text-[var(--blue)]">{title}</h3><p className={`mt-2 whitespace-pre-line text-sm leading-6 ${text ? 'text-[var(--ink)]' : 'text-[var(--muted)]'}`}>{text || prompt}</p></div>
   </section>;
