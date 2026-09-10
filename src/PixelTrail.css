@@ -1,0 +1,11 @@
+.studio-page { position: relative; isolation: isolate; }
+.studio-page > :not(.pixel-trail-layer) { position: relative; z-index: 1; }
+.studio-page > [aria-live] { position: fixed; z-index: 50; }
+.pixel-trail-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.pixel-trail-layer * { pointer-events: none !important; }
+.goo-filter-container { position: absolute; overflow: hidden; }
+.pixel-canvas { position: absolute !important; inset: 0; }
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .pixel-trail-layer { display: none; }
+}
+@media print { .pixel-trail-layer { display: none; } }

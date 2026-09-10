@@ -39,3 +39,7 @@ npm run lint      # oxlint
 ```
 
 Built with React 19, Vite, and Tailwind CSS. UI primitives are stock [shadcn](https://ui.shadcn.com) components on [Base UI](https://base-ui.com).
+
+## Pointer trail
+
+The page uses [React Bits PixelTrail](https://reactbits.dev/animations/pixel-trail) with grid size 83, trail size 0.06, maximum age 200 ms, interpolation 3, color `#1e45fc`, and gooey filter strength 2. It sits behind the content and listens to pointer movement without intercepting clicks. The effect loads separately from the form, is disabled for reduced motion and touch-only devices, and unmounts in hidden tabs. If WebGL is unavailable, the form remains usable. Component attribution and license are in [REACT-BITS-LICENSE.md](REACT-BITS-LICENSE.md).

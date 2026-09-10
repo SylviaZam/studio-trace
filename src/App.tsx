@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import PointerTrail from './PointerTrail';
 import { Check, ChevronDown, Clipboard, Download, RotateCcw, Sparkles } from 'lucide-react';
 import { interviewGuide, microExamples, renderRecord } from '@/lib/trace-record';
 import {
@@ -196,7 +197,8 @@ export default function Home() {
   const fieldError = (field: keyof Trace) => attemptedStep === activeStep && !trace[field].trim();
 
   return (
-    <main className="min-h-screen bg-white text-[var(--ink)]">
+    <main className="studio-page min-h-screen bg-white text-[var(--ink)]">
+      <PointerTrail />
       <header className="mx-auto flex min-h-[104px] w-full max-w-[1728px] items-center justify-between gap-5 px-5 py-4 sm:px-8 xl:min-h-[120px] xl:px-[50px]">
         <div className="flex items-center gap-3" aria-label="Studio Trace">
           <img src="/figma-assets/studio-trace-hand.png" alt="" width={47} height={71} className="h-[58px] w-[39px] object-contain xl:h-[71px] xl:w-[47px]" />
