@@ -12,29 +12,75 @@
 :root {
   --font-ui: "Geist", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-meta: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-pixel: "Silkscreen", "IBM Plex Mono", ui-monospace, monospace;
 
-  /* 02 - Foundations: color tokens */
-  --canvas: #f7f7f4;
+  /* Light: warm off-white paper, easy on the eyes, not a grey SaaS canvas */
+  --canvas: #faf8f3;
   --surface: #ffffff;
-  --ink: #161616;
-  --muted: #6d6d68;
-  --border: #dddcd7;
-  --border-strong: #c6c5bf;
+  --ink: #1a1714;
+  --muted: #6b645a;
+  --border: #e0dad0;
+  --border-strong: #b9b1a0;
   --studio-blue: #1e45fb;
-  --blue-hover: #1638d8;
-  --blue-soft: #eef1ff;
+  --blue-soft: #e9ebfc;
   --trace-green: #c2f22b;
-  --green-soft: #f3fbd2;
+  --green-hover: #b4e61b;
+  --green-soft: #eef7cf;
   --green-ink: #3f5406;
-  --error: #b42318;
-  --error-wash: #fff1ef;
+  --action: var(--trace-green);
+  --action-hover: var(--green-hover);
+  --on-action: #1a1714;
+  --error: #a8321f;
+  --error-wash: #f9e9e4;
+  --trail: #1e45fc;
 
-  /* geometry + motion */
-  --radius-control: 12px;
-  --radius-panel: 16px;
-  --shadow-float: 0 8px 30px rgba(0, 0, 0, 0.08);
+  /* geometry: hard edges, 4px grid */
+  --radius-control: 0px;
+  --radius-panel: 0px;
+  --shadow-float: none;
   --t: 180ms;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+
+:root[data-theme='dark'] {
+  --canvas: #16140f;
+  --surface: #1f1c16;
+  --ink: #f4f1e8;
+  --muted: #a79e8e;
+  --border: #38332a;
+  --border-strong: #565040;
+  --studio-blue: #8ea0ff;
+  --blue-soft: #24273d;
+  --trace-green: #c2f22b;
+  --green-hover: #d2ff42;
+  --green-soft: #2b3a0c;
+  --green-ink: #c2f22b;
+  --action: var(--trace-green);
+  --action-hover: var(--green-hover);
+  --on-action: #16140f;
+  --error: #e8836f;
+  --error-wash: #3a201a;
+  --trail: #c2f22b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --canvas: #16140f;
+    --surface: #1f1c16;
+    --ink: #f4f1e8;
+    --muted: #a79e8e;
+    --border: #38332a;
+    --border-strong: #565040;
+    --studio-blue: #8ea0ff;
+    --blue-soft: #24273d;
+    --green-soft: #2b3a0c;
+    --green-ink: #c2f22b;
+    --on-action: #16140f;
+    --error: #e8836f;
+    --error-wash: #3a201a;
+    --trail: #c2f22b;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -51,13 +97,13 @@ button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; }
 
-/* Meta type: IBM Plex Mono Medium 11/16 */
+/* Meta labels are bitmap; values stay mono so names stay readable */
 .meta {
-  font-family: var(--font-meta);
-  font-weight: 500;
+  font-family: var(--font-pixel);
+  font-weight: 400;
   font-size: 11px;
   line-height: 16px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -76,10 +122,10 @@ button:disabled { cursor: default; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  padding: 7px 12px;
+  border-radius: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  padding: 8px 12px;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -91,11 +137,12 @@ button:disabled { cursor: default; }
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
 }
-/* The live trace is the only surface that floats */
-.panel-float { box-shadow: var(--shadow-float); }
+/* The trace document is held by its rule, not by a shadow */
+.panel-float { box-shadow: none; border-color: var(--ink); }
 
-.trace-meter { height: 5px; border-radius: 999px; background: var(--border); overflow: hidden; }
-.trace-meter > span { display: block; height: 100%; border-radius: 999px; background: var(--trace-green); transition: width var(--t) var(--ease); }
+.trace-meter { display: flex; gap: 4px; }
+.trace-meter > span { flex: 1; height: 8px; background: var(--border); transition: background var(--t) var(--ease); }
+.trace-meter > span[data-on='true'] { background: var(--trace-green); }
 
 /* Workflow rail: no solid container, the rail recedes */
 .rail-step {
@@ -111,21 +158,21 @@ button:disabled { cursor: default; }
   background: transparent;
   transition: background var(--t) var(--ease), color var(--t) var(--ease);
 }
-.rail-step:hover { background: rgba(22, 22, 22, 0.04); }
+.rail-step:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
 .rail-step[data-state='active'] { background: var(--blue-soft); color: var(--studio-blue); }
 .step-chip {
   display: grid;
   place-items: center;
   min-width: 24px;
-  height: 23px;
+  height: 24px;
   padding: 0 5px;
-  border-radius: 7px;
+  border-radius: 0;
   border: 1px solid var(--border-strong);
   color: var(--muted);
   transition: background var(--t) var(--ease), border-color var(--t) var(--ease), color var(--t) var(--ease);
 }
 .rail-step[data-state='active'] .step-chip { border-color: var(--studio-blue); background: var(--studio-blue); color: #fff; }
-.rail-step[data-state='done'] .step-chip { border-color: var(--trace-green); background: var(--trace-green); color: var(--ink); }
+.rail-step[data-state='done'] .step-chip { border-color: var(--trace-green); background: var(--trace-green); color: var(--on-action); }
 
 /* Fields are structured, not pill shaped */
 .field {
@@ -155,11 +202,11 @@ textarea.field { scrollbar-color: var(--border) transparent; }
   border: 1px solid transparent;
   transition: background var(--t) var(--ease), border-color var(--t) var(--ease), color var(--t) var(--ease);
 }
-.btn-primary { background: var(--studio-blue); color: #fff; }
-.btn-primary:hover { background: var(--blue-hover); }
+.btn-primary { background: var(--action); color: var(--on-action); }
+.btn-primary:hover { background: var(--action-hover); }
 .btn-primary:disabled { opacity: 0.4; }
 .btn-quiet { background: transparent; border-color: var(--border); color: var(--ink); }
-.btn-quiet:hover { border-color: var(--border-strong); background: rgba(22, 22, 22, 0.03); }
+.btn-quiet:hover { border-color: var(--border-strong); background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .btn-quiet:disabled { opacity: 0.4; }
 /* Green confirms completion only */
 .btn-done { background: var(--green-soft); border-color: var(--trace-green); color: var(--green-ink); }
@@ -201,3 +248,18 @@ textarea.field { scrollbar-color: var(--border) transparent; }
 }
 
 :focus-visible { outline: 2px solid var(--studio-blue); outline-offset: 2px; }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.theme-toggle > button {
+  min-height: 32px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--muted);
+  transition: background var(--t) var(--ease), color var(--t) var(--ease);
+}
+.theme-toggle > button[aria-pressed='true'] { background: var(--ink); color: var(--canvas); }

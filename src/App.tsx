@@ -17,6 +17,7 @@ type Trace = { project: string; discipline: string; intent: string; aiUse: strin
 type DialogKind = 'sample' | 'clear' | null;
 
 const storageKey = 'studio-trace-draft-v1';
+const themeKey = 'studio-trace-theme';
 const emptyTrace: Trace = { project: '', discipline: '', intent: '', aiUse: '', accepted: '', rejected: '', verified: '', humanDecisions: '', creator: '', workUrl: '', workVersion: '', example: '' };
 
 const sampleTrace: Trace = {
@@ -60,6 +61,7 @@ export default function Home() {
   const [dialogKind, setDialogKind] = useState<DialogKind>(null);
   const [toast, setToast] = useState('');
   const [draftReady, setDraftReady] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
 
   const completed = useMemo(() => steps.map((step) => step.fields.every((field) => trace[field as keyof Trace].trim().length > 0)), [trace]);
   const progress = completed.filter(Boolean).length;
@@ -98,6 +100,22 @@ export default function Home() {
     if (!draftReady) return;
     window.localStorage.setItem(storageKey, JSON.stringify(trace));
   }, [draftReady, trace]);
+
+  useEffect(() => {
+    let saved: string | null = null;
+    try { saved = window.localStorage.getItem(themeKey); } catch { saved = null; }
+    if (saved === 'light' || saved === 'dark') setTheme(saved);
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'system') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', theme);
+    try {
+      if (theme === 'system') window.localStorage.removeItem(themeKey);
+      else window.localStorage.setItem(themeKey, theme);
+    } catch { /* storage can be unavailable; the theme still applies for this visit */ }
+  }, [theme]);
 
   useEffect(() => {
     const context = (document as Document & {
@@ -207,7 +225,18 @@ export default function Home() {
           <img src="/figma-assets/studio-trace-hand.png" alt="" width={28} height={41} className="h-[41px] w-[28px] object-contain" />
           <span className="whitespace-nowrap text-[26px] leading-none tracking-[-0.025em] sm:text-[31px]">Studio Trace</span>
         </div>
-        <span className="pill meta">Private · Saved locally</span>
+        <div className="flex items-center gap-3">
+          <span className="pill meta">Private · Saved locally</span>
+          <div className="theme-toggle" role="group" aria-label="Colour theme">
+            {([['light', 'Light'], ['dark', 'Dark']] as const).map(([value, label]) => (
+              <button key={value} type="button" className="meta" aria-pressed={theme === value}
+                onClick={() => setTheme(theme === value ? 'system' : value)}
+                title={theme === value ? `${label} on. Click to follow your system setting.` : `Switch to ${label.toLowerCase()}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </header>
 
       <div className="studio-shell studio-grid pt-10 pb-16">
@@ -218,11 +247,11 @@ export default function Home() {
               <p className="mt-2 text-[15px] leading-6 text-[var(--muted)]">{progress} of 5 decisions traced</p>
             </div>
             <div className="trace-meter mt-3 w-32 lg:w-full" role="img" aria-label={`${progress} of 5 decisions traced`}>
-              <span style={{ width: `${(progress / 5) * 100}%` }} />
+              {[0, 1, 2, 3, 4].map((i) => <span key={i} data-on={i < progress} />)}
             </div>
           </div>
 
-          <button type="button" aria-expanded={mobileStepsOpen} onClick={() => setMobileStepsOpen((open) => !open)} className="mt-5 flex min-h-11 w-full items-center justify-between rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-left md:hidden">
+          <button type="button" aria-expanded={mobileStepsOpen} onClick={() => setMobileStepsOpen((open) => !open)} className="mt-5 flex min-h-11 w-full items-center justify-between border border-[var(--border)] bg-[var(--surface)] px-3 text-left md:hidden">
             <span>
               <span className="meta block text-[var(--muted)]">Step {activeStep + 1} of 5</span>
               <span className="mt-0.5 block text-base">{step.label}</span>
@@ -243,7 +272,7 @@ export default function Home() {
           </nav>
 
           <div className="mt-6 border-t border-[var(--border)] pt-6">
-            <button type="button" onClick={requestSample} className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3.5 text-left transition hover:border-[var(--border-strong)]">
+            <button type="button" onClick={requestSample} className="w-full border border-[var(--border)] bg-[var(--surface)] p-3.5 text-left transition hover:border-[var(--ink)]">
               <span className="meta block text-[var(--muted)]">Need a reference?</span>
               <span className="mt-1.5 block text-[15px] leading-6 text-[var(--studio-blue)]">View a completed trace →</span>
             </button>
@@ -257,11 +286,11 @@ export default function Home() {
           ) : (
             <div key={activeStep} className="editor-enter">
               <p className="meta text-[var(--muted)]">{`0${activeStep + 1} / ${step.eyebrow}`}</p>
-              <h1 className="mt-4 text-[clamp(2rem,3.2vw,2.5rem)] font-semibold leading-[1.2] tracking-[-0.02em]">{step.label}</h1>
+              <h1 className="mt-4 text-[clamp(1.9rem,2.8vw,2.25rem)] font-medium leading-[1.2] tracking-[-0.015em]">{step.label}</h1>
               <p className="mt-4 max-w-[62ch] text-base leading-6 text-[var(--muted)]">{step.blurb}</p>
 
               {attemptedStep === activeStep && !completed[activeStep] && (
-                <p role="alert" className="mt-6 rounded-[12px] border border-[var(--error)] bg-[var(--error-wash)] px-4 py-3 text-[15px] leading-6 text-[var(--error)]">
+                <p role="alert" className="mt-6 border border-[var(--error)] bg-[var(--error-wash)] px-4 py-3 text-[15px] leading-6 text-[var(--error)]">
                   Complete the highlighted {step.fields.length === 1 ? 'answer' : 'answers'} before continuing.
                 </p>
               )}
@@ -340,7 +369,7 @@ export default function Home() {
         </details>
       </footer>
 
-      <div aria-live="polite" aria-atomic="true" className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-[12px] bg-[var(--ink)] px-5 py-3 text-[15px] text-white transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} style={{ boxShadow: 'var(--shadow-float)' }}>{toast}</div>
+      <div aria-live="polite" aria-atomic="true" className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 bg-[var(--ink)] px-5 py-3 text-[15px] text-[var(--surface)] transition ${toast ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`} style={{ boxShadow: 'var(--shadow-float)' }}>{toast}</div>
 
       <AlertDialog open={dialogKind !== null} onOpenChange={(open) => { if (!open) setDialogKind(null); }}>
         <AlertDialogContent className="panel panel-float max-w-[440px] gap-0 p-0 text-[var(--ink)]">
@@ -361,7 +390,7 @@ export default function Home() {
 function Field({ htmlFor, label, hint, error, children }: { htmlFor: string; label: string; hint?: string; error?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="block text-[clamp(1.25rem,2vw,1.75rem)] font-semibold leading-[1.28] tracking-[-0.01em]">{label}</label>
+      <label htmlFor={htmlFor} className="block text-[clamp(1.15rem,1.6vw,1.5rem)] font-medium leading-[1.3] tracking-[-0.005em]">{label}</label>
       {hint && <p className="mt-2.5 max-w-[62ch] text-base leading-6 text-[var(--muted)]">{hint}</p>}
       <div className="mt-5">{children}</div>
       {microExamples[htmlFor] && (
@@ -370,7 +399,7 @@ function Field({ htmlFor, label, hint, error, children }: { htmlFor: string; lab
             <Plus size={15} className="transition group-open:rotate-45" />
             See a strong example
           </summary>
-          <p id={`${htmlFor}-example`} className="mt-1 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3.5 text-[15px] leading-6 text-[var(--muted)]">{microExamples[htmlFor]}</p>
+          <p id={`${htmlFor}-example`} className="mt-1 border border-[var(--border)] bg-[var(--surface)] p-3.5 text-[15px] leading-6 text-[var(--muted)]">{microExamples[htmlFor]}</p>
         </details>
       )}
       {error && <p className="mt-2 text-[15px] leading-6 text-[var(--error)]">Add an answer to continue.</p>}
@@ -394,7 +423,7 @@ function ReviewPanel({ trace, completed, progress, onEdit, onCopy, onDownload, o
           </>
         ) : (
           <div className="flex items-start gap-3">
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--trace-green)] text-[var(--ink)]"><Check size={16} strokeWidth={2.5} /></span>
+            <span className="grid size-7 shrink-0 place-items-center bg-[var(--trace-green)] text-[var(--on-action)]"><Check size={16} strokeWidth={2.5} /></span>
             <div>
               <h2 className="text-[20px] font-semibold leading-7">All five sections are complete</h2>
               <p className="mt-1 text-[15px] leading-6 text-[var(--muted)]">Your reflection is ready to copy or download. Completeness does not verify its claims.</p>
@@ -435,7 +464,7 @@ function TraceDocument({ trace, completed, activeStep, reviewMode, progress }: {
         </div>
 
         <p className="mt-6 text-[15px] leading-6 text-[var(--muted)]">Creative process trace</p>
-        <h2 className="mt-2 text-[clamp(1.75rem,2.4vw,2.25rem)] font-semibold leading-[1.15] tracking-[-0.02em]">{trace.project || 'Untitled creative work'}</h2>
+        <h2 className="mt-2 text-[clamp(1.6rem,2.1vw,2rem)] font-medium leading-[1.18] tracking-[-0.015em]">{trace.project || 'Untitled creative work'}</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           <span className="pill meta">{trace.discipline || 'Discipline not selected'}</span>
           {trace.example === 'yes' && <span className="pill meta pill-blue">Illustrative example</span>}
@@ -474,5 +503,5 @@ function TraceDocument({ trace, completed, activeStep, reviewMode, progress }: {
 }
 
 function IconButton({ label, icon, onClick, disabled }: { label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid size-9 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] transition hover:border-[var(--studio-blue)] hover:text-[var(--studio-blue)] disabled:cursor-not-allowed disabled:opacity-35">{icon}</button>;
+  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid size-9 place-items-center border border-[var(--border)] bg-[var(--surface)] text-[var(--ink)] transition hover:border-[var(--studio-blue)] hover:text-[var(--studio-blue)] disabled:cursor-not-allowed disabled:opacity-35">{icon}</button>;
 }

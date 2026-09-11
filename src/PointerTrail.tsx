@@ -12,6 +12,20 @@ class TrailBoundary extends Component<{ children: ReactNode }, { failed: boolean
 
 export default function PointerTrail() {
   const [enabled, setEnabled] = useState(false);
+  const [trail, setTrail] = useState('#1e45fc');
+
+  useEffect(() => {
+    const read = () => {
+      const value = getComputedStyle(document.documentElement).getPropertyValue('--trail').trim();
+      if (value) setTrail(value);
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    const scheme = window.matchMedia('(prefers-color-scheme: dark)');
+    scheme.addEventListener('change', read);
+    return () => { observer.disconnect(); scheme.removeEventListener('change', read); };
+  }, []);
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)');
     const update = () => setEnabled(preference.matches && !document.hidden);
@@ -28,7 +42,7 @@ export default function PointerTrail() {
   return <div className="pixel-trail-layer" aria-hidden="true">
     <TrailBoundary><Suspense fallback={null}>
       <PixelTrail gridSize={83} trailSize={0.06} maxAge={200} interpolate={3}
-        color="#1e45fc" gooeyFilter={{ id: 'custom-goo-filter', strength: 2 }} />
+        color={trail} gooeyFilter={{ id: 'custom-goo-filter', strength: 2 }} />
     </Suspense></TrailBoundary>
   </div>;
 }
