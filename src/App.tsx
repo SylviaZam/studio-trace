@@ -442,9 +442,9 @@ function TraceDocument({ trace, completed, activeStep, reviewMode, progress }: {
         </div>
 
         <dl className="mt-5 space-y-1.5">
-          {trace.creator && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Creator</dt><dd className="meta break-words text-[var(--ink)]">{trace.creator}</dd></div>}
-          {trace.workUrl && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Work</dt><dd className="meta break-words text-[var(--ink)]">{trace.workUrl}</dd></div>}
-          {trace.workVersion && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Version</dt><dd className="meta text-[var(--ink)]">{trace.workVersion}</dd></div>}
+          {trace.creator && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Creator</dt><dd className="meta-value break-words text-[var(--ink)]">{trace.creator}</dd></div>}
+          {trace.workUrl && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Work</dt><dd className="meta-value break-words text-[var(--ink)]">{trace.workUrl}</dd></div>}
+          {trace.workVersion && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Version</dt><dd className="meta-value text-[var(--ink)]">{trace.workVersion}</dd></div>}
         </dl>
 
         <div className="mt-6 border-t border-[var(--border)]">

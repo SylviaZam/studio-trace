@@ -61,6 +61,16 @@ button:disabled { cursor: default; }
   text-transform: uppercase;
 }
 
+/* Meta used for a value the creator typed: keep the mono voice, drop the shouting */
+.meta-value {
+  font-family: var(--font-meta);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
 /* Pills: 999px reserved for tags and status only */
 .pill {
   display: inline-flex;
