@@ -280,7 +280,10 @@ export default function Home() {
                       <ChevronDown size={18} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
                     </div>
                   </Field>
-                  <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process. Creator, link, and version details are added during review." error={fieldError('intent')}>
+                  <Field htmlFor="creator" label="Who made it?" hint="Optional. Your name appears on the record as a self-declared author, not a verified signature.">
+                    <input id="creator" className={inputClass} value={trace.creator} onChange={(e) => set('creator', e.target.value)} placeholder="Your name" />
+                  </Field>
+                  <Field htmlFor="intent" label="What did you set out to make or understand?" hint="Describe your intent before AI entered the process. Link and version details are added during review." error={fieldError('intent')}>
                     <textarea id="intent" aria-describedby="intent-example" aria-invalid={fieldError('intent')} className={areaClass} value={trace.intent} onChange={(e) => set('intent', e.target.value)} placeholder="I wanted to…" />
                   </Field>
                 </>}
@@ -439,8 +442,7 @@ function TraceDocument({ trace, completed, activeStep, reviewMode, progress }: {
         </div>
 
         <dl className="mt-5 space-y-1.5">
-          <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Creator</dt><dd className="meta break-words text-[var(--ink)]">{trace.creator || 'Not recorded'}</dd></div>
-          <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Status</dt><dd className="meta text-[var(--ink)]">Self-reported</dd></div>
+          {trace.creator && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Creator</dt><dd className="meta break-words text-[var(--ink)]">{trace.creator}</dd></div>}
           {trace.workUrl && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Work</dt><dd className="meta break-words text-[var(--ink)]">{trace.workUrl}</dd></div>}
           {trace.workVersion && <div className="flex gap-3"><dt className="meta w-20 shrink-0 text-[var(--muted)]">Version</dt><dd className="meta text-[var(--ink)]">{trace.workVersion}</dd></div>}
         </dl>
@@ -464,6 +466,7 @@ function TraceDocument({ trace, completed, activeStep, reviewMode, progress }: {
 
         <div className="mt-6">
           <span className={`pill meta ${progress === 5 ? 'pill-green' : ''}`}>{progress} / 5 traced</span>
+          <p className="mt-4 text-[13px] leading-5 text-[var(--muted)]">Written by the creator. Studio Trace does not verify identity, sources, or authorship.</p>
         </div>
       </div>
     </article>
