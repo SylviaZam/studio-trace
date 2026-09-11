@@ -210,7 +210,7 @@ export default function Home() {
         <span className="pill meta">Private · Saved locally</span>
       </header>
 
-      <div className="studio-shell studio-grid pb-16">
+      <div className="studio-shell studio-grid pt-10 pb-16">
         <aside>
           <div className="mb-4 flex items-end justify-between gap-4 lg:block">
             <div>
