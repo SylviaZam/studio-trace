@@ -163,7 +163,7 @@ textarea.field { scrollbar-color: var(--border) transparent; }
 /* Preview updates fade without a layout jump */
 .trace-value { transition: color 140ms var(--ease); }
 
-.studio-shell { max-width: 1920px; margin: 0 auto; padding: 0 48px; }
+.studio-shell { max-width: 1920px; margin: 0 auto; padding-inline: 48px; }
 
 .studio-grid {
   display: grid;
@@ -179,7 +179,7 @@ textarea.field { scrollbar-color: var(--border) transparent; }
   .studio-grid > .trace-col { grid-column: 1 / -1; }
 }
 @media (max-width: 1279px) {
-  .studio-shell { padding: 0 24px; }
+  .studio-shell { padding-inline: 24px; }
 }
 @media (max-width: 1023px) {
   .studio-grid { grid-template-columns: 1fr; gap: 32px; }
