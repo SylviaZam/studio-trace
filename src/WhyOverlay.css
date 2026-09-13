@@ -1,0 +1,178 @@
+/* Why disclose — a reading panel that hovers over the landing rather than
+   replacing it. The corridor stays put behind, blurred and pushed back, so
+   the essay reads as a layer on the front door instead of a separate site. */
+
+/* A native <dialog>, so it sits in the top layer and is never touched by the
+   blur applied to the landing behind it. Browser defaults are reset here. */
+.why-overlay {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: clamp(1rem, 5vh, 3.5rem) clamp(0.75rem, 4vw, 2rem);
+  border: none;
+  background: transparent;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  color: var(--landing-fg);
+  animation: why-scrim-in 420ms ease-out both;
+}
+.why-overlay::backdrop {
+  background: rgba(7, 7, 10, 0.55);
+  animation: why-scrim-in 420ms ease-out both;
+}
+.why-overlay[data-state='closing'],
+.why-overlay[data-state='closing']::backdrop {
+  animation: why-scrim-out 300ms ease-in both;
+}
+
+.why-panel {
+  position: relative;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 3.5rem) clamp(3rem, 8vh, 4.5rem);
+  background: rgba(12, 12, 17, 0.92);
+  border: 1px solid var(--landing-line);
+  border-radius: 18px;
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6);
+  animation: why-panel-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.why-overlay[data-state='closing'] .why-panel {
+  animation: why-panel-out 300ms cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+
+.why-close {
+  position: absolute;
+  top: clamp(0.85rem, 2vw, 1.25rem);
+  right: clamp(0.85rem, 2vw, 1.25rem);
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--landing-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--landing-fg);
+  font-family: var(--font-meta);
+  font-size: 0.8rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+.why-close:hover {
+  border-color: var(--landing-fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.why-head {
+  border-bottom: 1px solid var(--landing-line);
+  padding-bottom: clamp(2rem, 5vh, 3rem);
+}
+.why-title {
+  margin-top: 1.25rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 5.5vw, 3.5rem);
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+.why-title:focus { outline: none; }
+/* The single acid word, same rule as the tunnel: one green per screen. */
+.why-accent { color: var(--landing-acid); }
+
+.why-lede {
+  margin-top: 1.5rem;
+  max-width: 56ch;
+  font-size: clamp(0.9rem, 1.2vw, 1rem);
+  line-height: 1.7;
+  color: var(--landing-mute);
+}
+
+/* ---- the arguments ---- */
+.why-list { margin-top: clamp(1.5rem, 4vh, 2.5rem); }
+
+.why-item {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 0 1.25rem;
+  padding: clamp(1.75rem, 4vh, 2.5rem) 0;
+  border-bottom: 1px solid var(--landing-line);
+}
+.why-item-n { color: var(--landing-cobalt); margin: 0.3rem 0 0; }
+.why-item-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.05rem, 1.9vw, 1.4rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.why-item-body p {
+  margin-top: 1rem;
+  max-width: 60ch;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--landing-mute);
+}
+
+/* ---- the limits. Deliberately NOT the 2px acid left rule: that border is
+   the signature of a finished record and appears nowhere else. ---- */
+.why-limits {
+  margin-top: clamp(2rem, 5vh, 3rem);
+  padding: clamp(1.25rem, 3.5vw, 1.75rem);
+  border: 1px solid var(--landing-line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.why-limits p {
+  margin-top: 1rem;
+  max-width: 60ch;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--landing-mute);
+}
+
+/* ---- closing call ---- */
+.why-cta {
+  margin-top: clamp(2.5rem, 6vh, 3.5rem);
+  padding-top: clamp(2rem, 5vh, 2.75rem);
+  border-top: 1px solid var(--landing-line);
+}
+.why-cta-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(1.3rem, 2.8vw, 1.9rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+.why-cta .landing-btn { margin-top: 1.75rem; }
+
+@keyframes why-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes why-scrim-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes why-panel-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes why-panel-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(18px) scale(0.98); }
+}
+
+@media (max-width: 620px) {
+  .why-item { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .why-item-n { margin-bottom: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .why-overlay,
+  .why-overlay[data-state='closing'],
+  .why-panel,
+  .why-overlay[data-state='closing'] .why-panel { animation: none; }
+}
