@@ -351,13 +351,17 @@
     transform: none;
   }
 }
+/* Drives the independent `scale` property rather than `transform`, so the
+   idle drift composes with the dive's translateZ instead of being replaced
+   by it. Sharing `transform` made the tunnel snap back to scale(1) the
+   instant a transition began — a visible jolt of up to 3.5% on huge type. */
 @keyframes landing-breathe {
   0%,
   100% {
-    transform: scale(1);
+    scale: 1;
   }
   50% {
-    transform: scale(1.035);
+    scale: 1.035;
   }
 }
 @keyframes landing-grain-shift {
@@ -419,9 +423,14 @@
 }
 /* Transform only. Animating opacity here — or even listing it in
    will-change — forces transform-style: preserve-3d to flatten, which
-   collapses every wall to zero thickness and blanks the corridor. */
+   collapses every wall to zero thickness and blanks the corridor.
+   Breathe is restated alongside the dive rather than dropped: the
+   animation shorthand replaces the whole list, so omitting it would kill
+   the idle drift mid-cycle and snap `scale` back to 1. */
 .landing[data-entering] .landing-tunnel {
-  animation: landing-dive 700ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  animation:
+    landing-breathe 18s ease-in-out infinite,
+    landing-dive 700ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
   will-change: transform;
 }
 /* The vignette holds the card at rest but paints the centre at 96% black.
@@ -473,7 +482,9 @@
    decelerating into the room instead of accelerating out of it.
    ============================================================ */
 .landing[data-returning] .landing-tunnel {
-  animation: landing-surface 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation:
+    landing-breathe 18s ease-in-out infinite,
+    landing-surface 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform;
 }
 .landing[data-returning] .landing-hero::after {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Clipboard, Download, Plus } from 'lucide-react';
 import { interviewGuide, microExamples, renderRecord } from '@/lib/trace-record';
+import { isModifiedClick, navigate } from './router';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -241,7 +242,12 @@ export default function Home() {
             href, so leaving mid-draft is a normal navigation and the draft
             stays in localStorage. The landing sees /start as the referrer
             and plays the tunnel in reverse. */}
-        <a href="/" className="home-link flex items-center gap-3" aria-label="Studio Trace, back to the home page">
+        <a
+          href="/"
+          className="home-link flex items-center gap-3"
+          aria-label="Studio Trace, back to the home page"
+          onClick={(event) => { if (isModifiedClick(event)) return; event.preventDefault(); navigate('/'); }}
+        >
           <img src="/figma-assets/studio-trace-hand.png" alt="" width={28} height={41} className="h-[41px] w-[28px] object-contain" />
           <span className="wordmark whitespace-nowrap text-[17px] leading-none sm:text-[21px]">Studio Trace</span>
         </a>

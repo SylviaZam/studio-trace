@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PointerTrail from './PointerTrail';
 import SiteNav, { FLOW_PATH, WHY_PATH } from './SiteNav';
+import { cameFrom, isModifiedClick, navigate } from './router';
 import WhyOverlay from './WhyOverlay';
 import './Landing.css';
 
@@ -11,12 +12,14 @@ const WHY_CLOSE_MS = 300;
 // instead of the user waiting on a frozen last frame.
 const DIVE_MS = 660;
 
-// Did we just come back from the flow? Referrer covers a normal link or the
-// back button; the navigation type catches a back/forward where the browser
-// withholds the referrer. Either way we only reverse the dive for an actual
-// return, never for someone arriving at the landing cold.
+// Did we just come back from the flow? Three ways in, because each covers a
+// case the others miss: cameFrom() for an in-page route swap (no new
+// document, so no referrer), the referrer for a real link or reload, and the
+// navigation type for a back/forward where the browser withholds it. We only
+// reverse the dive for an actual return, never for a cold arrival.
 function arrivingFromFlow() {
   try {
+    if (cameFrom() === FLOW_PATH) return true;
     if (document.referrer) {
       const from = new URL(document.referrer);
       if (from.origin === window.location.origin && from.pathname === FLOW_PATH) return true;
@@ -57,8 +60,7 @@ export default function Landing({ whyOpenInitially = false }: { whyOpenInitially
   // but it opens as a layer rather than a page load — that is what lets it
   // animate over the corridor instead of replacing it.
   const openWhy = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (event.defaultPrevented) return;
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (isModifiedClick(event)) return;
     event.preventDefault();
     window.clearTimeout(closeTimer.current);
     window.history.pushState(null, '', WHY_PATH);
@@ -128,13 +130,18 @@ export default function Landing({ whyOpenInitially = false }: { whyOpenInitially
   // plain navigation for reduced motion, and for any click that means "open
   // this somewhere else" (new tab, new window, middle click).
   const enterFlow = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (event.defaultPrevented) return;
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
+    if (isModifiedClick(event)) return;
     event.preventDefault();
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      navigate(FLOW_PATH);
+      return;
+    }
+
     setEntering(true);
-    timer.current = window.setTimeout(() => { window.location.href = FLOW_PATH; }, DIVE_MS);
+    // Swapped in place rather than loaded, so the dive runs to its end and
+    // the flow is simply there — no blank frame at the climax.
+    timer.current = window.setTimeout(() => navigate(FLOW_PATH), DIVE_MS);
   };
 
   return (
