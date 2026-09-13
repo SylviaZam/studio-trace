@@ -237,10 +237,14 @@ export default function Home() {
   return (
     <main className="studio-page min-h-screen">
       <header className="studio-shell flex min-h-[96px] flex-wrap items-center justify-between gap-x-5 gap-y-3 py-6">
-        <div className="flex items-center gap-3" aria-label="Studio Trace">
+        {/* The only way back to the landing from inside the flow. A plain
+            href, so leaving mid-draft is a normal navigation and the draft
+            stays in localStorage. The landing sees /start as the referrer
+            and plays the tunnel in reverse. */}
+        <a href="/" className="home-link flex items-center gap-3" aria-label="Studio Trace, back to the home page">
           <img src="/figma-assets/studio-trace-hand.png" alt="" width={28} height={41} className="h-[41px] w-[28px] object-contain" />
           <span className="wordmark whitespace-nowrap text-[17px] leading-none sm:text-[21px]">Studio Trace</span>
-        </div>
+        </a>
         <div className="flex items-center gap-3">
           <span className="pill meta">Private · Saved locally</span>
           <div className="theme-toggle" role="group" aria-label="Colour theme">
