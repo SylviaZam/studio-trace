@@ -18,8 +18,7 @@ const ARGUMENTS = [
     n: '03',
     title: 'Critique lands on the wrong target without it',
     body: [
-      'Feedback depends on knowing what the maker intended. In a crit, a reviewer who cannot tell which decisions were yours ends up responding to choices nobody made on purpose.',
-      'Saying where the tool entered the process makes the conversation about your reasoning again.',
+      'Feedback depends on knowing what the maker intended. Saying where the tool entered the process makes the conversation about your reasoning again.',
     ],
   },
   {
