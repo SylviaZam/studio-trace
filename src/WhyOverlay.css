@@ -98,6 +98,8 @@
   padding: clamp(1.75rem, 4vh, 2.5rem) 0;
   border-bottom: 1px solid var(--landing-line);
 }
+/* The list now ends the panel, so its last rule would double the panel edge. */
+.why-item:last-child { border-bottom: 0; padding-bottom: 0; }
 .why-item-n { color: var(--landing-cobalt); margin: 0.3rem 0 0; }
 .why-item-title {
   font-family: var(--font-display);
@@ -114,39 +116,6 @@
   line-height: 1.75;
   color: var(--landing-mute);
 }
-
-/* ---- the limits. Deliberately NOT the 2px acid left rule: that border is
-   the signature of a finished record and appears nowhere else. ---- */
-.why-limits {
-  margin-top: clamp(2rem, 5vh, 3rem);
-  padding: clamp(1.25rem, 3.5vw, 1.75rem);
-  border: 1px solid var(--landing-line);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-}
-.why-limits p {
-  margin-top: 1rem;
-  max-width: 60ch;
-  font-size: 0.9rem;
-  line-height: 1.75;
-  color: var(--landing-mute);
-}
-
-/* ---- closing call ---- */
-.why-cta {
-  margin-top: clamp(2.5rem, 6vh, 3.5rem);
-  padding-top: clamp(2rem, 5vh, 2.75rem);
-  border-top: 1px solid var(--landing-line);
-}
-.why-cta-title {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(1.3rem, 2.8vw, 1.9rem);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-}
-.why-cta .landing-btn { margin-top: 1.75rem; }
 
 @keyframes why-scrim-in {
   from { opacity: 0; }

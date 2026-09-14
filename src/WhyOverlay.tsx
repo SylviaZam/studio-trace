@@ -1,34 +1,21 @@
 import { useEffect, useRef } from 'react';
-import { FLOW_PATH } from './SiteNav';
 import './WhyOverlay.css';
 
 const ARGUMENTS = [
   {
     n: '01',
     title: 'A tool label answers the wrong question',
-    body: [
-      '“Made with AI” flattens everything into one flag. It covers the person who asked a model to rename a layer and the person who typed a sentence and shipped what came back. Those are not the same act, and a checkbox cannot tell them apart.',
-      'The question worth answering is not whether a machine was present. It is who decided.',
-    ],
+    body: ['When thoroughly analyzing the design process of a project, “Made with AI” won’t cut it.'],
   },
   {
     n: '02',
-    title: 'The judgment is the work',
+    title: 'Responsibility needs a subject',
     body: [
-      'In design, the value was never in producing options. It is in choosing against the easy one, noticing what a suggestion quietly assumes, and throwing out the version that tested well but said the wrong thing.',
-      'A disclosure that lists tools records the least interesting part of the process and omits the part that was actually yours.',
+      'Inspiration of past ideas can be part of innovation, if a form is borrowed from someone uncredited, a person has to be answerable for it. Attribution with no one behind it is not attribution.',
     ],
   },
   {
     n: '03',
-    title: 'Responsibility needs a subject',
-    body: [
-      'If a claim in the work is wrong, a pattern is inaccessible, or a form is borrowed from someone uncredited, a person has to be answerable for it. Attribution with no one behind it is not attribution.',
-      'Naming what you verified — and against what — is how responsibility stays attached to the work after it leaves your hands.',
-    ],
-  },
-  {
-    n: '04',
     title: 'Critique lands on the wrong target without it',
     body: [
       'Feedback depends on knowing what the maker intended. In a crit, a reviewer who cannot tell which decisions were yours ends up responding to choices nobody made on purpose.',
@@ -36,11 +23,11 @@ const ARGUMENTS = [
     ],
   },
   {
-    n: '05',
+    n: '04',
     title: 'Being specific protects you',
     body: [
-      'Silence invites the worst assumption: that any AI involvement means the whole thing was automated. Vagueness reads as something to hide.',
-      'An account of what you rejected and what you checked is the strongest answer to that, and it is one only you can write.',
+      'Silence invites the worst assumption: that any AI involvement means the whole thing was automated. This causes the “Design is dead” misconception.',
+      'An account of what you rejected is one only you can write.',
     ],
   },
 ];
@@ -82,9 +69,8 @@ export default function WhyOverlay({ closing, onClose }: { closing: boolean; onC
             the <span className="why-accent">author</span>
           </h1>
           <p className="why-lede">
-            Studio Trace exists because the common forms of AI disclosure record what software touched a file and
-            almost nothing about who exercised judgment over it. Those are different claims, and only one of them
-            tells a reader anything.
+            Studio Trace is a tool to facilitate recording the exclusive inputs of the designer and their AI tool used
+            for a project.
           </p>
         </header>
 
@@ -102,29 +88,6 @@ export default function WhyOverlay({ closing, onClose }: { closing: boolean; onC
           ))}
         </div>
 
-        <section className="why-limits">
-          <h2 className="why-item-title">What this is not</h2>
-          <p>
-            A Studio Trace record is a self-report. It does not verify your identity, your sources, or your
-            authorship, and it says so on every export. Nobody checks it. It is a structured way to say what you did,
-            in your own words — closer to a colophon than a certificate.
-          </p>
-          <p>
-            That limit is deliberate. A credential you could not actually earn would be worth less than an honest
-            account you can.
-          </p>
-        </section>
-
-        <section className="why-cta">
-          <h2 className="why-cta-title">Write one for a piece you have finished</h2>
-          <p className="why-lede">
-            Five questions, about four minutes. Nothing leaves your browser, and no AI writes any part of it — the
-            record is only worth reading because a person wrote it.
-          </p>
-          <a className="landing-btn landing-btn--action" href={FLOW_PATH}>
-            Start your passport <span className="landing-arrow">→</span>
-          </a>
-        </section>
       </div>
     </dialog>
   );
