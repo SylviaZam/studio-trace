@@ -308,14 +308,6 @@
 .landing-btn--action:hover {
   background: var(--landing-cobalt-hover);
 }
-.landing-btn--ghost {
-  border-color: var(--landing-line);
-  color: var(--landing-fg);
-}
-.landing-btn--ghost:hover {
-  border-color: var(--landing-fg);
-  background: rgba(255, 255, 255, 0.06);
-}
 .landing-arrow {
   transition: transform 0.18s;
 }

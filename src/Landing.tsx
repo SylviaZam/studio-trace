@@ -194,9 +194,6 @@ export default function Landing({ whyOpenInitially = false }: { whyOpenInitially
             <a className="landing-btn landing-btn--action" href={FLOW_PATH} onClick={enterFlow}>
               Start your passport <span className="landing-arrow">→</span>
             </a>
-            <a className="landing-btn landing-btn--ghost" href="#example">
-              See a finished one
-            </a>
           </div>
           <p className="landing-meta">5 steps · about 4 minutes · nothing leaves your browser</p>
         </div>
