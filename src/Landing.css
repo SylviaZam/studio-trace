@@ -53,6 +53,9 @@
   align-items: center;
   gap: 2.5rem;
   padding: 1.25rem clamp(1rem, 3vw, 2.25rem);
+  /* The ceiling lettering runs behind the nav at every size; a soft bed
+     keeps the links legible over it. */
+  background: linear-gradient(rgba(7, 7, 10, 0.85), rgba(7, 7, 10, 0));
   animation: landing-fade 0.8s 0.9s both;
 }
 .landing-wordmark {
@@ -112,8 +115,12 @@
    touched, which is why the middle needed a graphic to fill it. */
 .landing-hero {
   position: relative;
-  height: 100svh;
-  min-height: 640px;
+  /* Grows with the card instead of forcing a fixed height. A 640px floor
+     made short laptop screens (1366x625 is common) scroll and pushed the
+     card into the floor lettering. The padding keeps the card clear of the
+     fixed nav. */
+  min-height: 100svh;
+  padding-block: clamp(4.5rem, 11svh, 6.5rem) clamp(2rem, 7svh, 4rem);
   overflow: hidden;
   display: grid;
   place-items: center;
@@ -125,7 +132,10 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  animation: landing-breathe 18s ease-in-out infinite;
+  /* Deliberately still at rest. A continuous animation here forces the
+     browser to re-rasterize very large 3D text every frame, which some
+     GPUs and browsers render as visible shaking. Motion is reserved for
+     the short dive and return transitions. */
 }
 .landing-plane {
   position: absolute;
@@ -142,7 +152,9 @@
   color: var(--landing-cobalt);
   white-space: nowrap;
   user-select: none;
-  backface-visibility: hidden;
+  /* No backface-visibility: hidden. The walls always face the camera, and
+     culling a plane turned exactly 90deg is a knife-edge test that some
+     renderers flip frame to frame, which reads as flicker. */
 }
 
 .landing-plane-text { display: block; }
@@ -156,7 +168,7 @@
   transform-origin: 50% 0%;
   transform: rotateX(-90deg);
   justify-content: center;
-  font-size: 17vw;
+  font-size: min(17vw, 30svh);
   animation: landing-drop-in 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 /* floor. Its near edge lands exactly on the bottom of the frame, so without
@@ -171,7 +183,7 @@
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 0.82em;
-  font-size: 17vw;
+  font-size: min(17vw, 30svh);
   animation: landing-drop-in 1.1s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 /* left wall — two stacked lines so the type fills the wall rather than
@@ -184,7 +196,7 @@
   transform-origin: 0% 50%;
   transform: rotateY(90deg);
   align-items: center;
-  font-size: 31vh;
+  font-size: min(31svh, 20vw);
   animation: landing-slide-in 1.1s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 /* right wall */
@@ -198,7 +210,7 @@
   align-items: center;
   justify-content: flex-end;
   text-align: right;
-  font-size: 31vh;
+  font-size: min(31svh, 20vw);
   animation: landing-slide-in 1.1s 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 /* the single green word — PROOF. the only acid on the page. */
@@ -226,13 +238,14 @@
 }
 .landing-grain {
   position: absolute;
-  inset: -50%;
+  inset: 0;
   z-index: 6;
   pointer-events: none;
   opacity: 0.16;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation: landing-grain-shift 6s steps(6) infinite;
+  /* Static on purpose: a moving blend layer over the 3D scene made the
+     lettering appear to jitter, especially in screen recordings. */
 }
 
 /* ============================================================
@@ -242,7 +255,9 @@
   position: relative;
   z-index: 10;
   text-align: center;
-  padding: clamp(2rem, 4vw, 3.25rem) clamp(1.5rem, 5vw, 4rem);
+  /* Vertical rhythm scales with height as well as width, so a short
+     laptop screen still fits the whole card without scrolling. */
+  padding: clamp(1.25rem, min(4vw, 5svh), 3.25rem) clamp(1.5rem, 5vw, 4rem);
   max-width: 760px;
   animation: landing-rise 1s 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -252,7 +267,7 @@
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--landing-mute);
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(0.75rem, 2.4svh, 1.5rem);
 }
 .landing-kicker b {
   color: var(--landing-acid);
@@ -263,12 +278,12 @@
   font-weight: 900;
   letter-spacing: -0.035em;
   line-height: 0.94;
-  font-size: clamp(2.1rem, 5.4vw, 4rem);
+  font-size: clamp(2rem, min(5.4vw, 8svh), 4rem);
   text-transform: uppercase;
   text-wrap: balance;
 }
 .landing-sub {
-  margin: 1.5rem auto 0;
+  margin: clamp(0.85rem, 2.4svh, 1.5rem) auto 0;
   max-width: 46ch;
   font-size: clamp(0.95rem, 1.4vw, 1.06rem);
   line-height: 1.55;
@@ -279,7 +294,7 @@
   gap: 0.75rem;
   justify-content: center;
   flex-wrap: wrap;
-  margin-top: 2.25rem;
+  margin-top: clamp(1.25rem, 3.6svh, 2.25rem);
 }
 .landing-btn {
   display: inline-flex;
@@ -343,39 +358,6 @@
     transform: none;
   }
 }
-/* Drives the independent `scale` property rather than `transform`, so the
-   idle drift composes with the dive's translateZ instead of being replaced
-   by it. Sharing `transform` made the tunnel snap back to scale(1) the
-   instant a transition began — a visible jolt of up to 3.5% on huge type. */
-@keyframes landing-breathe {
-  0%,
-  100% {
-    scale: 1;
-  }
-  50% {
-    scale: 1.035;
-  }
-}
-@keyframes landing-grain-shift {
-  0% {
-    transform: translate(0, 0);
-  }
-  20% {
-    transform: translate(-4%, 3%);
-  }
-  40% {
-    transform: translate(3%, -4%);
-  }
-  60% {
-    transform: translate(-3%, -2%);
-  }
-  80% {
-    transform: translate(4%, 2%);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-}
 @keyframes landing-drop-in {
   from {
     opacity: 0;
@@ -415,14 +397,9 @@
 }
 /* Transform only. Animating opacity here — or even listing it in
    will-change — forces transform-style: preserve-3d to flatten, which
-   collapses every wall to zero thickness and blanks the corridor.
-   Breathe is restated alongside the dive rather than dropped: the
-   animation shorthand replaces the whole list, so omitting it would kill
-   the idle drift mid-cycle and snap `scale` back to 1. */
+   collapses every wall to zero thickness and blanks the corridor. */
 .landing[data-entering] .landing-tunnel {
-  animation:
-    landing-breathe 18s ease-in-out infinite,
-    landing-dive 700ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  animation: landing-dive 700ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
   will-change: transform;
 }
 /* The vignette holds the card at rest but paints the centre at 96% black.
@@ -474,9 +451,7 @@
    decelerating into the room instead of accelerating out of it.
    ============================================================ */
 .landing[data-returning] .landing-tunnel {
-  animation:
-    landing-breathe 18s ease-in-out infinite,
-    landing-surface 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: landing-surface 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform;
 }
 .landing[data-returning] .landing-hero::after {
@@ -534,16 +509,39 @@
     --tunnel-perspective: 620px;
     --tunnel-depth: 900px;
   }
+  /* In a portrait frame the side walls land in the same band as the
+     paragraph, so they recede further and the card's bed widens. */
   .landing-plane--left,
   .landing-plane--right {
-    opacity: 0.55;
-    font-size: 13vh;
+    opacity: 0.3;
+    font-size: min(13svh, 18vw);
   }
   .landing-plane--top,
   .landing-plane--bottom {
-    font-size: 20vw;
+    font-size: min(20vw, 22svh);
+  }
+  .landing-hero::after {
+    background: radial-gradient(
+      75% 45% at 50% 50%,
+      rgba(7, 7, 10, 0.96) 0%,
+      rgba(7, 7, 10, 0.85) 60%,
+      rgba(7, 7, 10, 0) 100%
+    );
   }
   .landing-nav-links {
+    display: none;
+  }
+  /* With the links hidden, nothing else pushes Start to the right edge. */
+  .landing-nav-cta {
+    margin-left: auto;
+  }
+}
+
+/* Phones: there is no room for walls beside a paragraph, so the corridor is
+   reduced to its ceiling and floor, which still frame the card. */
+@media (max-width: 560px) {
+  .landing-plane--left,
+  .landing-plane--right {
     display: none;
   }
 }
