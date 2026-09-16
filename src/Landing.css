@@ -121,7 +121,13 @@
      fixed nav. */
   min-height: 100svh;
   padding-block: clamp(4.5rem, 11svh, 6.5rem) clamp(2rem, 7svh, 4rem);
-  overflow: hidden;
+  /* Clipped with clip-path, not overflow: hidden. In Safari, overflow
+     clipping on the perspective box plus the grain's blend mode inside it
+     makes WebKit drop the entire 3D tunnel (verified in Safari: overflow
+     hidden and overflow: clip both render nothing; clip-path renders the
+     corridor). Chrome renders identically either way. */
+  overflow: visible;
+  clip-path: inset(0);
   display: grid;
   place-items: center;
   isolation: isolate;
